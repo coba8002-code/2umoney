@@ -1,0 +1,17 @@
+{
+  "name": "2umoney",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "seed:dummy": "ts-node prisma/seedDummy.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
+}

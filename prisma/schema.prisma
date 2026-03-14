@@ -1,0 +1,342 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum StrategyGroup {
+  A
+  B
+  C
+  D
+}
+
+enum Timeframe {
+  INTRADAY
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum ActionCode {
+  WAIT
+  WATCH
+  BUY_1
+  BUY_ADD
+  HOLD
+  SELL_1
+  SELL_SPLIT
+  SELL_ALL
+  AUTO_EXCHANGE_SETUP
+  RECHECK_AFTER_EVENT
+}
+
+// 1. currencies
+model Currency {
+  code           String        @id
+  name           String
+  strategyGroup  StrategyGroup
+  liquidityScore Float?
+
+  // Relations
+  dailyRates          ExchangeRateDaily[]
+  intradayRates       ExchangeRateIntraday[]
+  weeklyRates         ExchangeRateWeekly[]
+  monthlyRates        ExchangeRateMonthly[]
+  technicalIndicators TechnicalIndicator[]
+  regimeStates        RegimeState[]
+  events              EventCalendar[]
+  newsSignals         NewsSignal[]
+  patternFeatures     PatternFeature[]
+  signalScores        SignalScore[]
+  portfolioPositions  PortfolioPosition[]
+  tradeLogs           TradeLog[]
+  tossExecutionPlans  TossExecutionPlan[]
+
+  @@map("currencies")
+}
+
+// 2. exchange_rate_daily
+model ExchangeRateDaily {
+  id           String   @id @default(cuid())
+  currencyCode String
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  date         DateTime
+  open         Float
+  high         Float
+  low          Float
+  close        Float
+  volume       Float?
+
+  @@unique([currencyCode, date])
+  @@index([currencyCode, date])
+  @@map("exchange_rate_daily")
+}
+
+// 3. exchange_rate_intraday
+model ExchangeRateIntraday {
+  id           String   @id @default(cuid())
+  currencyCode String
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  timestamp    DateTime
+  open         Float
+  high         Float
+  low          Float
+  close        Float
+  volume       Float?
+
+  @@unique([currencyCode, timestamp])
+  @@index([currencyCode, timestamp])
+  @@map("exchange_rate_intraday")
+}
+
+// 4. exchange_rate_weekly
+model ExchangeRateWeekly {
+  id           String   @id @default(cuid())
+  currencyCode String
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  date         DateTime
+  open         Float
+  high         Float
+  low          Float
+  close        Float
+  volume       Float?
+
+  @@unique([currencyCode, date])
+  @@index([currencyCode, date])
+  @@map("exchange_rate_weekly")
+}
+
+// 5. exchange_rate_monthly
+model ExchangeRateMonthly {
+  id           String   @id @default(cuid())
+  currencyCode String
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  date         DateTime
+  open         Float
+  high         Float
+  low          Float
+  close        Float
+  volume       Float?
+
+  @@unique([currencyCode, date])
+  @@index([currencyCode, date])
+  @@map("exchange_rate_monthly")
+}
+
+// 6. technical_indicators
+model TechnicalIndicator {
+  id           String    @id @default(cuid())
+  currencyCode String
+  currency     Currency  @relation(fields: [currencyCode], references: [code])
+  date         DateTime
+  timeframe    Timeframe
+  ma           Float?
+  rsi          Float?
+  atr          Float?
+  upperBand    Float?
+  lowerBand    Float?
+  zScore       Float?
+  structure    String?
+
+  @@unique([currencyCode, date, timeframe])
+  @@index([currencyCode, date])
+  @@map("technical_indicators")
+}
+
+// 7. regime_states
+model RegimeState {
+  id             String   @id @default(cuid())
+  currencyCode   String
+  currency       Currency @relation(fields: [currencyCode], references: [code])
+  date           DateTime
+  regimeCategory String   // e.g., Trending, Ranging, Volatile
+  regimeFitScore Float
+  volatility     Float?
+  trendStrength  Float?
+
+  @@unique([currencyCode, date])
+  @@index([currencyCode, date])
+  @@map("regime_states")
+}
+
+// 8. event_calendar
+model EventCalendar {
+  id           String   @id @default(cuid())
+  currencyCode String
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  eventDate    DateTime
+  eventName    String
+  impactLevel  Int      // 1 to 3
+  actual       String?
+  forecast     String?
+  previous     String?
+
+  @@index([currencyCode, eventDate])
+  @@map("event_calendar")
+}
+
+// 9. news_signals
+model NewsSignal {
+  id              String   @id @default(cuid())
+  currencyCode    String
+  currency        Currency @relation(fields: [currencyCode], references: [code])
+  date            DateTime
+  headline        String
+  sentimentScore  Float
+  policyRiskScore Float
+  eventIntensity  Float
+  tags            String[] // PostgreSQL array
+
+  @@index([currencyCode, date])
+  @@map("news_signals")
+}
+
+// 10. pattern_features
+model PatternFeature {
+  id           String   @id @default(cuid())
+  currencyCode String
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  featureDate  DateTime
+  features     Json     // Store [f1, f2, ... fn]
+
+  outcome      PatternOutcome?
+
+  @@unique([currencyCode, featureDate])
+  @@index([currencyCode, featureDate])
+  @@map("pattern_features")
+}
+
+// 11. pattern_outcomes
+model PatternOutcome {
+  id               String         @id @default(cuid())
+  patternId        String         @unique
+  pattern          PatternFeature @relation(fields: [patternId], references: [id])
+  return3d         Float?
+  return5d         Float?
+  return10d        Float?
+  return20d        Float?
+  maxDrawdown      Float?
+  similarPatternCt Int?
+
+  @@map("pattern_outcomes")
+}
+
+// 12. signal_scores
+model SignalScore {
+  id                   String     @id @default(cuid())
+  currencyCode         String
+  currency             Currency   @relation(fields: [currencyCode], references: [code])
+  signalDate           DateTime
+  structureScore       Float      // Weights: 20
+  patternScore         Float      // Weights: 20
+  timingScore          Float      // Weights: 15
+  newsScore            Float      // Weights: 10
+  regimeScore          Float      // Weights: 20
+  expectedValueScore   Float      // Weights: 15
+  totalScore           Float
+  actionCode           ActionCode
+  bettingGrade         String?
+  recommendedTotalKrw  Float?
+  firstEntryKrw        Float?
+  secondEntryKrw       Float?
+  thirdEntryKrw        Float?
+  stopLossRate         Float?
+  targetRate1          Float?
+  targetRate2          Float?
+  expectedReturn5d     Float?
+  expectedReturn10d    Float?
+  estimatedMaxDrawdown Float?
+
+  @@unique([currencyCode, signalDate])
+  @@index([currencyCode, signalDate])
+  @@map("signal_scores")
+}
+
+// 13. position_rules
+model PositionRule {
+  id               String        @id @default(cuid())
+  group            StrategyGroup @unique
+  maxWeightPercent Float         // e.g. A=18, B=15, C=12, D=8
+
+  @@map("position_rules")
+}
+
+// 14. portfolio_settings
+model PortfolioSetting {
+  id                   String   @id @default(cuid())
+  totalCapitalKrw      Float
+  accountRiskPct       Float
+  defaultStopLossPct   Float
+  defaultTakeProfitPct Float
+  newsFilterEnabled    Boolean  @default(true)
+  eventAvoidanceLevel  Int      @default(5)
+  updatedAt            DateTime @updatedAt
+
+  @@map("portfolio_settings")
+}
+
+// 15. portfolio_positions
+model PortfolioPosition {
+  id              String   @id @default(cuid())
+  currencyCode    String   @unique
+  currency        Currency @relation(fields: [currencyCode], references: [code])
+  averagePrice    Float
+  amount          Float
+  currentValueKrw Float
+  currentPhase    Int      @default(1)
+  stopLossRate    Float    @default(0)
+  targetRate      Float    @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@map("portfolio_positions")
+}
+
+// 16. trade_logs
+model TradeLog {
+  id           String   @id @default(cuid())
+  currencyCode String
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  tradeDate    DateTime
+  tradeType    String   // BUY, SELL
+  price        Float
+  amount       Float
+  krwValue     Float
+  reason       String?
+
+  @@index([currencyCode, tradeDate])
+  @@map("trade_logs")
+}
+
+// 17. toss_execution_plans
+model TossExecutionPlan {
+  id           String   @id @default(cuid())
+  currencyCode String
+  currency     Currency @relation(fields: [currencyCode], references: [code])
+  planDate     DateTime
+  targetRate   Float
+  amountKrw    Float
+  status       String   // PENDING, COMPLETED, CANCELLED
+
+  @@index([currencyCode, planDate])
+  @@map("toss_execution_plans")
+}
+
+// 18. backtest_results
+model BacktestResult {
+  id             String   @id @default(cuid())
+  strategyName   String
+  testPeriod     String
+  winRate        Float
+  totalReturn    Float
+  mdd            Float
+  expectedValue  Float
+  details        Json?
+  completedAt    DateTime @default(now())
+
+  @@index([strategyName])
+  @@map("backtest_results")
+}
