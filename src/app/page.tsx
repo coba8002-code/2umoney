@@ -54,88 +54,112 @@ export default async function DashboardPage() {
   const totalAssets = (settings?.totalCapitalKrw || 0) + totalPositionsValue;
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">2UMONEY OS</h1>
-        <p className="text-muted-foreground mt-1">Quantitative FX Decision Dashboard</p>
+    <div className="min-h-screen p-8 lg:p-12 relative">
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px] -z-10 pointer-events-none" />
+
+      <header className="mb-10 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight font-[Outfit] text-gradient">Dashboard OS</h1>
+          <p className="text-muted-foreground mt-2 font-medium">Quantitative FX Decision Dashboard</p>
+        </div>
+        <div className="glassmorphism rounded-2xl p-4 flex items-center space-x-6">
+           <div className="text-right">
+             <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Total Assets</div>
+             <div className="text-2xl font-[Outfit] font-bold text-gradient-primary">
+               {totalAssets.toLocaleString()} <span className="text-sm font-medium text-muted-foreground">KRW</span>
+             </div>
+           </div>
+        </div>
       </header>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-        <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        <div className="glassmorphism rounded-2xl p-6 flex flex-col justify-between hover-card-bump group">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">Total Assets</span>
-              <DollarSign className="w-4 h-4 text-muted-foreground"/>
+              <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Open Positions</span>
+              <div className="bg-white/5 p-2 rounded-lg group-hover:bg-white/10 transition-colors">
+                <Activity className="w-4 h-4 text-gray-300"/>
+              </div>
             </div>
-            <div className="text-2xl font-bold mt-2">{totalAssets.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">KRW</span></div>
+            <div className="text-4xl font-[Outfit] font-light mt-4">{positions.length}</div>
         </div>
-        <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">Open Positions</span>
-              <Activity className="w-4 h-4 text-muted-foreground"/>
+        <div className="glassmorphism rounded-2xl p-6 flex flex-col justify-between hover-card-bump group relative overflow-hidden text-emerald-400">
+            <div className="absolute inset-0 bg-emerald-500/5 group-hover:bg-emerald-500/10 transition-colors" />
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-sm font-bold uppercase tracking-widest">Buy Candidates</span>
+              <div className="bg-emerald-500/10 p-2 rounded-lg">
+                 <TrendingUp className="w-4 h-4"/>
+              </div>
             </div>
-            <div className="text-2xl font-bold mt-2">{positions.length}</div>
+            <div className="text-4xl font-[Outfit] font-light mt-4 relative z-10">{buyCandidates}</div>
         </div>
-        <div className="bg-primary/20 border border-primary/30 rounded-xl p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-primary">Buy Candidates</span>
-              <TrendingUp className="w-4 h-4 text-primary"/>
+        <div className="glassmorphism rounded-2xl p-6 flex flex-col justify-between hover-card-bump group relative overflow-hidden text-rose-400">
+            <div className="absolute inset-0 bg-rose-500/5 group-hover:bg-rose-500/10 transition-colors" />
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-sm font-bold uppercase tracking-widest">Sell Candidates</span>
+              <div className="bg-rose-500/10 p-2 rounded-lg">
+                 <TrendingDown className="w-4 h-4"/>
+              </div>
             </div>
-            <div className="text-2xl font-bold text-primary mt-2">{buyCandidates}</div>
+            <div className="text-4xl font-[Outfit] font-light mt-4 relative z-10">{sellCandidates}</div>
         </div>
-        <div className="bg-destructive/20 border border-destructive/30 rounded-xl p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-destructive">Sell Candidates</span>
-              <TrendingDown className="w-4 h-4 text-destructive"/>
+        <div className="glassmorphism rounded-2xl p-6 flex flex-col justify-between hover-card-bump group relative overflow-hidden text-amber-500">
+            <div className="absolute inset-0 bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors" />
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-sm font-bold uppercase tracking-widest">Event Warnings</span>
+              <div className="bg-amber-500/10 p-2 rounded-lg">
+                 <AlertCircle className="w-4 h-4"/>
+              </div>
             </div>
-            <div className="text-2xl font-bold text-destructive mt-2">{sellCandidates}</div>
-        </div>
-        <div className="bg-accent/20 border border-accent/30 rounded-xl p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-accent-foreground">Event Warnings</span>
-              <AlertCircle className="w-4 h-4 text-accent-foreground"/>
-            </div>
-            <div className="text-2xl font-bold text-accent-foreground mt-2">0</div>
+            <div className="text-4xl font-[Outfit] font-light mt-4 relative z-10">0</div>
         </div>
       </div>
 
       {/* TOP Picks */}
-      <h2 className="text-xl font-bold mb-4">Today's Top Picks</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <h2 className="text-2xl font-[Outfit] font-bold mb-6 text-gray-100">Top 3 Alpha Signals</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {topPicks.map((pick, i) => (
-          <div key={pick.currency.code} className="bg-card border border-primary/50 relative overflow-hidden rounded-xl p-5">
-             <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 rounded-bl-lg text-xs font-bold">
-               TOP {i+1}
+          <div key={pick.currency.code} className="glassmorphism rounded-3xl p-6 relative overflow-hidden group hover-card-bump">
+             <div className="absolute top-0 right-0 bg-primary/80 backdrop-blur-md text-primary-foreground px-4 py-1.5 rounded-bl-2xl text-xs font-bold tracking-wider z-20">
+               RANK {i+1}
              </div>
-             <div className="flex items-center justify-between mb-2 mt-2">
+             
+             {/* Diagonal Header Decoration */}
+             <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-[40px] z-0 pointer-events-none" />
+
+             <div className="flex items-center justify-between mb-4 mt-2 relative z-10">
                 <div>
-                   <span className="text-2xl font-bold">{pick.currency.code}</span>
-                   <span className="ml-2 text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded">Group {pick.currency.strategyGroup}</span>
+                   <span className="text-3xl font-[Outfit] font-bold text-white">{pick.currency.code}</span>
+                   <span className="ml-3 text-xs font-bold text-gray-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/5 uppercase tracking-wider">Group {pick.currency.strategyGroup}</span>
                 </div>
                 <div className="text-right">
-                   <div className="text-lg font-semibold">{pick.rate?.close.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                   <div className={cn("text-xs font-semibold", pick.changePct >= 0 ? 'text-green-500' : 'text-red-500')}>
+                   <div className="text-xl font-medium tracking-tight text-gray-200">{pick.rate?.close.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                   <div className={cn("text-sm font-bold tracking-wider", pick.changePct >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
                      {pick.changePct > 0 ? '+' : ''}{pick.changePct.toFixed(2)}%
                    </div>
                 </div>
              </div>
              
-             <div className="mt-4 flex justify-between items-end">
+             <div className="mt-8 flex justify-between items-end relative z-10">
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Score</div>
-                  <div className="text-xl font-bold text-primary">{pick.score?.totalScore.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">/ 100</span></div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Algorithmic Score</div>
+                  <div className="text-2xl font-bold text-gradient-primary">{pick.score?.totalScore.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">/ 100</span></div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs text-muted-foreground mb-1">Action</div>
-                  <div className="inline-block bg-primary text-primary-foreground px-2 py-1 rounded text-sm font-bold">
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Action Code</div>
+                  <div className="inline-block bg-primary/20 border border-primary/30 text-emerald-400 px-3 py-1.5 rounded-lg text-sm font-extrabold tracking-widest">
                     {pick.score?.actionCode}
                   </div>
                 </div>
              </div>
-             <div className="mt-4 pt-3 border-t border-border flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Rec. Entry: {pick.score?.recommendedTotalKrw?.toLocaleString() || 0} KRW</span>
-                <Link href={`/currency/${pick.currency.code}`} className="text-xs font-medium text-primary flex items-center hover:underline">
-                  Analyze <ArrowRight className="w-3 h-3 ml-1"/>
+             <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center relative z-10">
+                <span className="text-sm font-medium text-gray-400 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
+                   🎯 {pick.score?.recommendedTotalKrw?.toLocaleString() || 0} <span className="text-xs opacity-70">KRW</span>
+                </span>
+                <Link href={`/currency/${pick.currency.code}`} className="text-sm font-bold text-primary flex items-center hover:text-emerald-300 transition-colors hover:translate-x-1">
+                  Deep Dive <ArrowRight className="w-4 h-4 ml-1.5"/>
                 </Link>
              </div>
           </div>
@@ -143,79 +167,83 @@ export default async function DashboardPage() {
       </div>
 
       {/* Main Table */}
-      <h2 className="text-xl font-bold mb-4">All Currencies & Signals</h2>
-      <div className="w-full overflow-x-auto bg-card border border-border rounded-xl">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+      <h2 className="text-2xl font-[Outfit] font-bold mb-6 text-gray-100">Global Currency Universe</h2>
+      <div className="w-full overflow-x-auto glassmorphism rounded-3xl p-1 border border-white/5">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead className="text-xs text-gray-400 uppercase tracking-widest border-b border-white/5">
             <tr>
-              <th className="px-4 py-3 font-semibold">Currency</th>
-              <th className="px-4 py-3 font-semibold">Group</th>
-              <th className="px-4 py-3 font-semibold text-right">Price</th>
-              <th className="px-4 py-3 font-semibold text-center">Regime</th>
-              <th className="px-4 py-3 font-semibold text-center">Score</th>
-              <th className="px-4 py-3 font-semibold text-center">Action</th>
-              <th className="px-4 py-3 font-semibold text-right">Rec. KRW</th>
-              <th className="px-4 py-3 font-semibold text-right">Target 1 🎯</th>
-              <th className="px-4 py-3 font-semibold text-center">Toss Auto</th>
+              <th className="px-6 py-5 font-bold">Symbol</th>
+              <th className="px-6 py-5 font-bold">Tier</th>
+              <th className="px-6 py-5 font-bold text-right">Quote</th>
+              <th className="px-6 py-5 font-bold text-center">Regime</th>
+              <th className="px-6 py-5 font-bold text-center">Score</th>
+              <th className="px-6 py-5 font-bold text-center">Engine Step</th>
+              <th className="px-6 py-5 font-bold text-right">Rec. Capital</th>
+              <th className="px-6 py-5 font-bold text-right text-emerald-400/80">Profit Target 🎯</th>
+              <th className="px-6 py-5 font-bold text-center">Toss Route</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-white/5">
             {todayData.map((row) => {
               const action = row.score?.actionCode || 'WAIT';
               const isBuy = action.includes('BUY');
               const isSell = action.includes('SELL');
               
               return (
-                <tr key={row.currency.code} className="border-b border-border hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-3 font-medium">
-                    <Link href={`/currency/${row.currency.code}`} className="hover:text-primary transition-colors flex items-center">
-                      <span className="font-bold">{row.currency.code}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{row.currency.name}</span>
+                <tr key={row.currency.code} className="hover:bg-white/5 transition-colors duration-200 group">
+                  <td className="px-6 py-4 font-medium">
+                    <Link href={`/currency/${row.currency.code}`} className="flex items-center group-hover:translate-x-1 transition-transform">
+                      <span className="font-bold text-lg text-gray-200 block">{row.currency.code}</span>
+                      <span className="ml-3 text-xs text-muted-foreground hidden sm:block">{row.currency.name}</span>
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">Group {row.currency.strategyGroup}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    <div>{row.rate?.close.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                    <div className={cn("text-xs font-medium", row.changePct >= 0 ? "text-green-500" : "text-red-500")}>
+                  <td className="px-6 py-4">
+                     <span className="bg-white/5 px-2 py-1 rounded text-xs font-bold text-gray-400 border border-white/5">G{row.currency.strategyGroup}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right tabular-nums">
+                    <div className="font-medium text-gray-200 text-[15px]">{row.rate?.close.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                    <div className={cn("text-xs font-bold tracking-wide mt-1", row.changePct >= 0 ? "text-emerald-400" : "text-rose-400")}>
                       {row.changePct >= 0 ? '+' : ''}{row.changePct.toFixed(2)}%
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+                  <td className="px-6 py-4 text-center">
+                    <span className="text-[10px] font-bold tracking-wider uppercase bg-black/30 border border-white/5 text-gray-400 px-3 py-1.5 rounded-full">
                       {row.regime?.regimeCategory?.split('_').join(' ') || 'UNKNOWN'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-6 py-4 text-center">
                     <span className={cn(
-                      "font-bold",
-                      row.score!.totalScore >= 80 ? "text-primary" : (row.score!.totalScore >= 50 ? "text-foreground" : "text-destructive")
+                      "font-[Outfit] font-extrabold text-lg",
+                      row.score!.totalScore >= 80 ? "text-gradient-primary" : (row.score!.totalScore >= 50 ? "text-gray-300" : "text-rose-400")
                     )}>
                       {row.score?.totalScore.toFixed(0)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-6 py-4 text-center">
                     <span className={cn(
-                      "px-2 py-1 rounded text-xs font-bold",
-                      isBuy ? "bg-primary text-primary-foreground" : 
-                      (isSell ? "bg-destructive text-destructive-foreground" : "bg-secondary text-secondary-foreground")
+                      "px-3 py-1.5 rounded-lg text-xs font-bold tracking-widest uppercase border",
+                      isBuy ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]" : 
+                      (isSell ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-white/5 text-gray-400 border-white/10")
                     )}>
                       {action}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    <div>{row.score?.recommendedTotalKrw?.toLocaleString() || '-'}</div>
+                  <td className="px-6 py-4 text-right">
+                    <div className="font-medium text-gray-300">{row.score?.recommendedTotalKrw?.toLocaleString() || '-'}</div>
                     {isBuy && row.score?.firstEntryKrw && (
-                      <div className="text-xs text-primary">1차: {row.score.firstEntryKrw.toLocaleString()}</div>
+                      <div className="text-[11px] font-bold text-emerald-400/80 mt-1 uppercase tracking-wider">T1: {row.score.firstEntryKrw.toLocaleString()}</div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                  <td className="px-6 py-4 text-right tabular-nums text-gray-400 font-medium">
                     {row.score?.targetRate1?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || '-'}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-6 py-4 text-center">
                     {row.tossPlan ? (
-                      <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded border border-blue-500/30">PENDING</span>
+                      <span className="inline-flex items-center bg-blue-500/10 text-blue-400 text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md border border-blue-500/20">
+                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse mr-1.5"/> PENDING
+                      </span>
                     ) : (
-                       action.includes('AUTO') ? <span className="text-xs text-primary font-medium">조언됨</span> : <span className="text-xs text-muted-foreground">-</span>
+                       action.includes('AUTO') ? <span className="text-[10px] uppercase font-bold tracking-wider text-primary">Routing</span> : <span className="text-gray-600">-</span>
                     )}
                   </td>
                 </tr>
