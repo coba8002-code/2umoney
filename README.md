@@ -133,7 +133,25 @@ Never buy all at once. The engine splits the recommendation into 3 limit orders:
 
 ---
 
-## 🔮 6. Future Data Integration Points
+## ☁️ 6. Cloud Deployment (Vercel)
+
+### Frontend Dashboard (Next.js)
+1. Commit all your code and push it to your GitHub repository.
+2. Go to [Vercel](https://vercel.com/new) and import your GitHub repository.
+3. Before clicking "Deploy", add the following **Environment Variables**:
+   - `DATABASE_URL`: Your cloud PostgreSQL connection string (e.g. Supabase, Neon).
+4. Click **Deploy**. Vercel will automatically run `prisma generate`, build the Next.js app, and start your Dashboard OS on a live public URL.
+
+### Backend Analytical Engine (Python)
+To run the heavy ML/NLP tasks overnight, deploy the `/python` folder as a Worker.
+1. Create a service on **Render** (Background Worker) or **Railway**.
+2. Point it to this repository.
+3. Set the build command to `pip install -r python/requirements.txt` and start command to `python python/engine.py`.
+4. Provide the same `DATABASE_URL` environment variable so it can talk to the Next.js database.
+
+---
+
+## 🔮 7. Future Data Integration Points
 
 The Next-Gen engines have been written using robust `interface` boundaries and mock data loaders specifically so that they can be hotswapped for live APIs:
 - **Yahoo Finance (yfinance):** To replace the `seedDummy.ts` with real nightly 10-year OHLCV histories.
