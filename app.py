@@ -214,8 +214,8 @@ def main():
     st.dataframe(
         df.style.format(format_dict, na_rep="-")
         .background_gradient(subset=["AI 점수 (V7)"], cmap="Purples")
-        .applymap(lambda x: 'color: #34D399; font-weight: bold;' if float(str(x).replace('%','').replace('+','')) > 0 else 'color: #F87171; font-weight: bold;', subset=['변동률 (%)'])
-        .applymap(lambda x: 'color: #3B82F6; font-weight: bold;' if 'BUY' in str(x) else ('color: #F43F5E; font-weight: bold;' if 'SELL' in str(x) else 'color: #94A3B8;'), subset=['추천 액션']),
+        .map(lambda x: 'color: #34D399; font-weight: bold;' if float(str(x).replace('%','').replace('+','')) > 0 else 'color: #F87171; font-weight: bold;', subset=['변동률 (%)'])
+        .map(lambda x: 'color: #3B82F6; font-weight: bold;' if 'BUY' in str(x) else ('color: #F43F5E; font-weight: bold;' if 'SELL' in str(x) else 'color: #94A3B8;'), subset=['추천 액션']),
         use_container_width=True,
         height=650
     )
