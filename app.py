@@ -50,7 +50,7 @@ def fetch_live_fx_data(capital):
     data = yf.download(tickers, period="5d", interval="1d", progress=False)
     
     if 'Close' in data:
-        close_data = data['Close']
+        close_data = data['Close'].ffill().bfill()
     else:
         close_data = pd.DataFrame()
         
@@ -139,10 +139,9 @@ def fetch_live_fx_data(capital):
                 # For this Streamlit app, we are just defining it, not sending it.
             # --- End Telegram bot alert construction ---
 
-            has_action = total_score > 70
-                
-            p1_krw = int(invest_amount * ((target_1 - close_today)/close_today)) if has_action else 0
-            p2_krw = int(invest_amount * ((target_2 - close_today)/close_today)) if has_action else 0
+            # Always calculate expected profits even if invest_amount is 0 (it will just be 0)
+            p1_krw = int(invest_amount * ((target_1 - close_today)/close_today))
+            p2_krw = int(invest_amount * ((target_2 - close_today)/close_today))
                 
             results.append({
                 "외화": c,
@@ -150,14 +149,14 @@ def fetch_live_fx_data(capital):
                 "전일대비(%)": change_pct,
                 "추천 행동 🎯": action,
                 "투자 가이드(KRW)": krw_guide,
-                "🔽 1차 매수": entry_1 if has_action else "-",
-                "🔽 2차 매수": entry_2 if has_action else "-",
-                "🔽 3차 매수": entry_3 if has_action else "-",
-                "🔼 1차 매도": target_1 if has_action else "-",
-                "🔼 2차 매도": target_2 if has_action else "-",
-                "💸 1차 예상수익": p1_krw if has_action else "-",
-                "💸 2차 예상수익": p2_krw if has_action else "-",
-                "🚨 손절가": stop_price if has_action else "-",
+                "🔽 1차 매수": entry_1,
+                "🔽 2차 매수": entry_2,
+                "🔽 3차 매수": entry_3,
+                "🔼 1차 매도": target_1,
+                "🔼 2차 매도": target_2,
+                "💸 1차 예상수익": p1_krw,
+                "💸 2차 예상수익": p2_krw,
+                "🚨 손절가": stop_price,
                 "AI 점수 (100)": total_score
             })
         except Exception as e:
@@ -170,6 +169,7 @@ def fetch_live_fx_data(capital):
 def fetch_chart_data(currency_code):
     ticker = f"{currency_code}KRW=X"
     # 기간별 데이터 가져오기
+    df_1d = yf.download(ticker, period="1d", interval="5m", progress=False)
     df_1mo = yf.download(ticker, period="1mo", interval="1d", progress=False)
     df_3mo = yf.download(ticker, period="3mo", interval="1wk", progress=False)
     df_1y = yf.download(ticker, period="1y", interval="1mo", progress=False)
@@ -185,27 +185,18 @@ def fetch_chart_data(currency_code):
         df = df[['Close']].copy()
         df['Close'] = df['Close'] * factor
         df.rename(columns={'Close': '환율(원)'}, inplace=True)
-        return df
+        return df.ffill().bfill()
         
     return {
+        "intraday": process_df(df_1d),
         "daily": process_df(df_1mo),
         "weekly": process_df(df_3mo),
         "monthly": process_df(df_1y)
     }
 
 def main():
-    # --- 사이드바 설정 (자본금 입력) ---
-    st.sidebar.markdown("## 💰 나의 지갑 설정")
-    st.sidebar.markdown("운용하실 **총 투자 자본금**을 입력하시면, 2umoney AI가 각 통화별로 **정확히 얼마어치(₩)** 사야 할지 분산 투자 금액을 계산해 드립니다.")
-    
-    user_capital = st.sidebar.number_input(
-        "총 투자 자본금 (원)", 
-        min_value=10000, 
-        value=10000000, 
-        step=1000000, 
-        format="%d"
-    )
-    st.sidebar.info(f"👉 **현재 설정된 원금:** ₩{user_capital:,}")
+    # 자본금 하드코딩 (사이드바 삭제)
+    user_capital = 10000000 
     
     st.markdown("<h1>💡 2umoney: 세상에서 제일 쉬운 실전 외화테크 비서</h1>", unsafe_allow_html=True)
     st.markdown("<p style='color:#CBD5E1; font-size:1.1rem;'><b>야후 파이낸스(Yahoo Finance)의 실시간 라이브 데이터가 연동되었습니다.</b> 핵심 엔진인 V7 알고리즘이 토스뱅크에서 언제 사고팔지 수식적으로 계산하여 찍어드립니다.</p>", unsafe_allow_html=True)
@@ -253,16 +244,33 @@ def main():
             "AI 점수 (100)": "{:.1f}"
         }
     
-        st.dataframe(
-            df_sorted.style.format(format_dict).applymap(
-                lambda x: 'color: #EF4444' if isinstance(x, str) and '-' in x and '%' in x else 
-                          ('color: #10B981' if isinstance(x, str) and '+' in x and '%' in x else ''), 
-                subset=['전일대비(%)']
-            ),
-            use_container_width=True,
-            height=400,
-            hide_index=True 
-        )
+        try:
+            event = st.dataframe(
+                df_sorted.style.format(format_dict).map(
+                    lambda x: 'color: #EF4444' if isinstance(x, str) and '-' in x and '%' in x else 
+                              ('color: #10B981' if isinstance(x, str) and '+' in x and '%' in x else ''), 
+                    subset=['전일대비(%)']
+                ),
+                use_container_width=True,
+                height=400,
+                hide_index=True,
+                selection_mode="single-row",
+                on_select="rerun"
+            )
+        except TypeError:
+            # Fallback for older Streamlit versions not supporting on_select with Style
+            st.dataframe(
+                df_sorted.style.format(format_dict).map(
+                    lambda x: 'color: #EF4444' if isinstance(x, str) and '-' in x and '%' in x else 
+                              ('color: #10B981' if isinstance(x, str) and '+' in x and '%' in x else ''), 
+                    subset=['전일대비(%)']
+                ),
+                use_container_width=True,
+                height=400,
+                hide_index=True 
+            )
+            event = None
+
         st.caption(f"⏰ 야후 파이낸스 실시간 연동 시간: {datetime.now().strftime('%Y년 %m월 %d일 %p %I시 %M분')}")
         
         st.markdown("---")
@@ -271,9 +279,13 @@ def main():
         # 딥다이브 상세 분석 섹션
         # ==========================================
         st.markdown("## 🔎 특정 국가 딥다이브 (상세 분석 및 그래픽 차트)")
-        st.write("표에서 관심있는 외화를 하나 골라서 알고리즘의 뼈대와 실시간 흐름을 육안으로 확인하세요.")
+        st.write("위 표의 17개국 목록에서 행(줄)을 **클릭**하여 관심있는 외화를 선택하면(위아래 방향키 이동 가능) 실시간 차트가 업데이트 됩니다.")
         
-        selected_fx = st.selectbox("🌍 딥다이브할 외화를 선택하세요:", df_sorted['외화'].tolist())
+        selected_fx = None
+        if event and hasattr(event, "selection") and len(event.selection.rows) > 0:
+            selected_fx = df_sorted.iloc[event.selection.rows[0]]['외화']
+        else:
+            selected_fx = st.selectbox("👆 표 선택이 안되는 경우 여기서 직접 고르세요:", df_sorted['외화'].tolist())
         
         if selected_fx:
             fx_info = df_sorted[df_sorted['외화'] == selected_fx].iloc[0]
@@ -327,23 +339,30 @@ def main():
             with st.spinner(f"📊 {selected_fx} 과거 차트를 그리는 중입니다..."):
                 charts = fetch_chart_data(selected_fx)
                 
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
-                    st.markdown("#### 📈 일간 (최근 1개월 흐름)")
+                    st.markdown("#### ⚡ 실시간 (오늘흐름)")
+                    if not charts['intraday'].empty:
+                        st.line_chart(charts['intraday'], use_container_width=True, color="#EC4899")
+                    else:
+                        st.write("현재 거래 시간 아님/로딩 실패")
+                        
+                with col2:
+                    st.markdown("#### 📈 일간 (최근 1개월)")
                     if not charts['daily'].empty:
                         st.line_chart(charts['daily'], use_container_width=True, color="#3B82F6")
                     else:
                         st.write("데이터 로딩 실패")
                         
-                with col2:
-                    st.markdown("#### 📅 주간 (최근 3개월 흐름)")
+                with col3:
+                    st.markdown("#### 📅 주간 (최근 3개월)")
                     if not charts['weekly'].empty:
                         st.line_chart(charts['weekly'], use_container_width=True, color="#10B981")
                     else:
                         st.write("데이터 로딩 실패")
                         
-                with col3:
+                with col4:
                     st.markdown("#### 🗓️ 월간 (최근 1년 큰 그림)")
                     if not charts['monthly'].empty:
                         st.line_chart(charts['monthly'], use_container_width=True, color="#F59E0B")
