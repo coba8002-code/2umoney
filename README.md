@@ -2,7 +2,7 @@
 
 A personal, institutional-grade foreign exchange (FX) quantitative dashboard built with Next.js, TypeScript, and Prisma. It leverages multi-dimensional scoring algorithms, historical pattern matching, natural language processing (NLP) for news sentiment, and market regime detection to generate highly optimized, progressive sizing execution plans for **Toss Bank's Auto-Exchange (토스 자동환전)** feature.
 
-![Dashboard Preview](docs/dashboard-preview.png)
+
 
 ## 📌 1. Project Overview
 
