@@ -32,6 +32,13 @@ function calculateRSI(prices: number[], period = 14) {
 async function main() {
   console.log('Generating realistic dummy data...')
   
+  const rules = await prisma.positionRule.findMany()
+  const ruleMap: Record<string, number> = {}
+  rules.forEach((r: { group: string; maxWeightPercent: number }) => { ruleMap[r.group] = r.maxWeightPercent / 100 })
+  console.log('Loaded strategy position rules:', ruleMap)
+
+  const totalCapitalKrw = 10000000; // 10M KRW base for dummy calc
+  
   const currencies = await prisma.currency.findMany()
   if (currencies.length === 0) {
     console.error('No currencies found. Run the base seed first.')
@@ -154,9 +161,22 @@ async function main() {
 
        const totalScore = Math.floor(Math.random() * 100);
        let action = ActionCode.WAIT;
-       if (totalScore > 80) action = ActionCode.BUY_1;
-       else if (totalScore > 60) action = ActionCode.HOLD;
+       if (totalScore >= 80) action = ActionCode.BUY_1;
+       else if (totalScore >= 65) action = ActionCode.BUY_ADD;
+       else if (totalScore >= 50) action = ActionCode.HOLD;
        else if (totalScore < 30) action = ActionCode.SELL_SPLIT;
+       else if (totalScore < 20) action = ActionCode.SELL_ALL;
+
+       // Dynamic Portfolio Allocation Logic
+       let recommendedKrw = 0;
+       const maxWeight = ruleMap[currency.strategyGroup] || 0.1;
+       const maxAlloc = totalCapitalKrw * maxWeight;
+
+       if (action === ActionCode.BUY_1) {
+         recommendedKrw = maxAlloc; // Full weight for strong conviction
+       } else if (action === ActionCode.BUY_ADD) {
+         recommendedKrw = maxAlloc * 0.5; // Half weight for moderate conviction
+       }
 
        signalData.push({
          currencyCode: currency.code,
@@ -169,10 +189,20 @@ async function main() {
          expectedValueScore: Math.random() * 15,
          totalScore: totalScore,
          actionCode: action,
-         recommendedTotalKrw: action.includes('BUY') ? 500000 : 0,
+         recommendedTotalKrw: recommendedKrw,
+         firstEntryKrw: recommendedKrw > 0 ? recommendedKrw * 0.5 : null, // Split entry visually
          expectedReturn5d: randomNormal(0.01, 0.02),
-         estimatedMaxDrawdown: -Math.abs(randomNormal(0.02, 0.01))
+         estimatedMaxDrawdown: -Math.abs(randomNormal(0.02, 0.01)),
+         targetRate1: rate.close * (1 + 0.025), // 2.5x ATR Dummy for V3.0
+         dcaTargetRate: rate.close * (1 - 0.015), // Next DCA Level Drop in V3.0
+         stopLossRate: null // No Stop Loss
        });
+
+       // Correcting direction for targets based on Action
+       if (action.includes('SELL')) {
+         signalData[signalData.length - 1].targetRate1 = rate.close * (1 - 0.025);
+         signalData[signalData.length - 1].dcaTargetRate = rate.close * (1 + 0.015);
+       }
 
        // Toss execution plan logic
        if (action === ActionCode.BUY_1 || action === ActionCode.SELL_SPLIT) {
@@ -180,7 +210,7 @@ async function main() {
             currencyCode: currency.code,
             planDate: rate.date,
             targetRate: rate.close * (action.includes('BUY') ? 0.99 : 1.01),
-            amountKrw: 200000,
+            amountKrw: recommendedKrw > 0 ? recommendedKrw : 200000,
             status: 'PENDING'
          })
        }

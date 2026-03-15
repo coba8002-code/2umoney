@@ -247,6 +247,7 @@ model SignalScore {
   stopLossRate         Float?
   targetRate1          Float?
   targetRate2          Float?
+  dcaTargetRate        Float? // For V3.0 Grid Strategy
   expectedReturn5d     Float?
   expectedReturn10d    Float?
   estimatedMaxDrawdown Float?
@@ -290,6 +291,8 @@ model PortfolioPosition {
   currentPhase    Int      @default(1)
   stopLossRate    Float    @default(0)
   targetRate      Float    @default(0)
+  dcaTargetRate   Float?
+  dcaLevel        Int      @default(1)
   updatedAt       DateTime @updatedAt
 
   @@map("portfolio_positions")

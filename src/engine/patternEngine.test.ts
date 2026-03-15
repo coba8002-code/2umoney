@@ -47,16 +47,17 @@ describe('Pattern Matching Engine', () => {
     expect(result.similarPatternCount).toBe(2);
 
     // Expected wins out of 2 valid cases:
-    // past-1 3d: 0.01 (win), past-2 3d: -0.01 (loss) -> winRate3d = 50%
     // past-1 5d: 0.02 (win), past-2 5d: 0.01 (win) -> winRate5d = 100%
-    expect(result.winRate3d).toBe(0.5);
     expect(result.winRate5d).toBe(1.0);
     
     // avg Return 5d: (0.02 + 0.01) / 2 = 0.015
-    expect(result.avgReturn5d).toBeCloseTo(0.015);
+    expect(result.expectedReturn5d).toBeCloseTo(0.015);
     
     // avg MDD: (-0.01 + -0.02) / 2 = -0.015
-    expect(result.avgMaxDrawdown10d).toBeCloseTo(-0.015);
+    expect(result.estimatedMaxDrawdown).toBeCloseTo(-0.015);
+    
+    // XGBoost is predictable mock driven
+    expect(result.xgboostProbabilityUp5d).toBeGreaterThanOrEqual(0);
   });
 
   test('Fails gracefully if no match meets threshold', () => {

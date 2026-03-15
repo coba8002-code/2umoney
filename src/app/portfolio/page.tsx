@@ -41,8 +41,8 @@ async function getPortfolioData() {
     // Engine recommendation logic parsing
     const canBuyAdd = actionCode === 'BUY_ADD' || (actionCode.includes('BUY') && pos.currentPhase < 3);
     const recommendTakeProfit = actionCode.includes('SELL');
-    const isStopLossTriggered = currentRate <= pos.stopLossRate;
     const isTargetHit = currentRate >= pos.targetRate;
+    const isDcaTriggered = pos.dcaTargetRate ? currentRate <= pos.dcaTargetRate : false;
 
     return {
       ...pos,
@@ -55,8 +55,8 @@ async function getPortfolioData() {
       actionCode,
       canBuyAdd,
       recommendTakeProfit,
-      isStopLossTriggered,
-      isTargetHit
+      isTargetHit,
+      isDcaTriggered
     };
   });
 
@@ -180,12 +180,13 @@ export default async function PortfolioPage() {
             <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
               <tr>
                 <th className="px-4 py-3 font-semibold">Currency</th>
-                <th className="px-4 py-3 font-semibold text-center">Phase</th>
+                <th className="px-4 py-3 font-semibold text-center">Level</th>
                 <th className="px-4 py-3 font-semibold text-right">Avg Base</th>
                 <th className="px-4 py-3 font-semibold text-right">Current Rate</th>
                 <th className="px-4 py-3 font-semibold text-right">P&L (%)</th>
-                <th className="px-4 py-3 font-semibold text-center">Stop Loss</th>
-                <th className="px-4 py-3 font-semibold text-center">Target</th>
+                <th className="px-4 py-3 font-semibold text-center text-rose-400">손절 🚨 (V7)</th>
+                <th className="px-4 py-3 font-semibold text-center text-blue-400">물타기 📥 (V6)</th>
+                <th className="px-4 py-3 font-semibold text-center text-emerald-400">익절 🎯</th>
                 <th className="px-4 py-3 font-semibold text-center">Add. Buy</th>
                 <th className="px-4 py-3 font-semibold text-center">Take Profit</th>
                 <th className="px-4 py-3 font-semibold text-center">Engine Action</th>
@@ -200,8 +201,8 @@ export default async function PortfolioPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="bg-muted text-muted-foreground px-2 py-1 rounded text-xs font-semibold">
-                      {pos.currentPhase} / 3
+                    <span className="bg-muted text-muted-foreground px-2 py-1 rounded text-xs font-semibold" title="Max 4 DCA tranches in V3.0">
+                      {pos.dcaLevel} / 4
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">{pos.averagePrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
@@ -215,12 +216,25 @@ export default async function PortfolioPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={cn("px-2 py-0.5 rounded text-xs font-semibold", pos.isStopLossTriggered ? "bg-destructive text-destructive-foreground animate-pulse" : "text-muted-foreground")}>
-                      {pos.stopLossRate.toLocaleString(undefined, { maximumFractionDigits: 1 })}
-                    </span>
+                    {pos.stopLossRate && pos.stopLossRate > 0 ? (
+                      <span className="px-2 py-0.5 rounded text-xs font-bold border border-rose-500/30 text-rose-500 bg-rose-500/10">
+                        {pos.stopLossRate.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 line-through text-xs font-semibold" title="No Stop Loss under V6.0">무손절</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={cn("px-2 py-0.5 rounded text-xs font-semibold", pos.isTargetHit ? "bg-green-500 text-white animate-pulse" : "text-muted-foreground")}>
+                    {pos.dcaTargetRate ? (
+                      <span className={cn("px-2 py-0.5 rounded text-xs font-semibold", pos.isDcaTriggered ? "bg-blue-500 text-white animate-pulse" : "border border-blue-400/20 text-blue-400")}>
+                        {pos.dcaTargetRate.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={cn("px-2 py-0.5 rounded text-xs font-semibold", pos.isTargetHit ? "bg-green-500 text-white animate-pulse" : "border border-emerald-400/20 text-emerald-400")}>
                       {pos.targetRate.toLocaleString(undefined, { maximumFractionDigits: 1 })}
                     </span>
                   </td>

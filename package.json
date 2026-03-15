@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "seed:dummy": "ts-node prisma/seedDummy.ts"
+    "seed:dummy": "ts-node prisma/seedDummy.ts",
+    "test:v7": "ts-node src/engine/mockV7ScalpDaemon.ts"
   },
   "keywords": [],
   "author": "",

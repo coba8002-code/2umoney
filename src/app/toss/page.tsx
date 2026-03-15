@@ -42,10 +42,20 @@ async function getTossExecutionPlans() {
       currency: c,
       currentPrice,
       action,
+    // Detect V7 Margin Scalping Mode (if Stop Loss exists and > 0, and second entry is 0)
+    const isScalpMode = !!(score.stopLossRate && score.stopLossRate > 0 && score.secondEntryKrw === 0);
+    const recommendedMode = isScalpMode ? 'V7.0 마진 단타 스캘핑 (손절매매)' : '2분할 매수 (V6.0 Macro Swing)';
+
+    return {
+      currency: c,
+      currentPrice,
+      action,
       isActionable,
-      recommendedMode: '3분할 점진적 매수',
+      recommendedMode,
+      isScalpMode,
+      stopLossRate: score.stopLossRate || 0,
       firstOrderKrw: score.firstEntryKrw || 0,
-      firstOrderRate,
+      firstOrderRate: score.targetRate1 || firstOrderRate,
       secondOrderKrw: score.secondEntryKrw || 0,
       secondOrderRate,
       thirdOrderKrw: score.thirdEntryKrw || 0,
@@ -86,7 +96,7 @@ export default async function TossPlanPage() {
            <p>1. Open the <strong>Toss App</strong> &gt; Foreign Currency Account (외화통장) &gt; Exchange (환전하기) &gt; <strong>Auto Exchange (자동환전)</strong>.</p>
            <p>2. Select the target currency from the actionable lists below.</p>
            <p>3. Input the exact <strong>Target Rate (목표 환율)</strong> and <strong>Amount (금액)</strong> for each entry phase.</p>
-           <p>4. This structured approach prevents emotional trading and strictly enforces the 40-30-30 portfolio sizing rule.</p>
+           <p>4. This structured approach prevents emotional trading and strictly enforces the 2-tranche (50% each) portfolio sizing rule.</p>
         </div>
       </div>
 
@@ -123,7 +133,7 @@ export default async function TossPlanPage() {
                     <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
                        <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-pointer"/>
                     </div>
-                    <div className="text-xs text-muted-foreground font-semibold mb-2">1st Entry (40% Weight)</div>
+                    <div className="text-xs text-muted-foreground font-semibold mb-2">1st Entry (50% Weight)</div>
                     <div className="grid grid-cols-2 gap-4">
                        <div>
                          <div className="text-[10px] uppercase text-muted-foreground">Target Rate</div>
@@ -136,16 +146,30 @@ export default async function TossPlanPage() {
                     </div>
                  </div>
 
-                 {/* 2nd Order */}
-                 {plan.secondOrderKrw > 0 && (
+                 {/* 2nd Order / Stop Loss display */}
+                 {plan.isScalpMode && plan.stopLossRate > 0 ? (
+                   <div className="bg-red-500/10 rounded-lg p-3 border border-red-500/30 relative group">
+                      <div className="text-xs text-red-400 font-semibold mb-2">🚨 Strict Stop Loss (Cut-loss)</div>
+                      <div className="grid grid-cols-2 gap-4">
+                         <div>
+                           <div className="text-[10px] uppercase text-red-400/70">Warning Level</div>
+                           <div className="font-bold text-lg text-red-500">{plan.stopLossRate.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                         </div>
+                         <div>
+                           <div className="text-[10px] uppercase text-muted-foreground">Action</div>
+                           <div className="font-bold text-md text-red-400 pt-1">즉시 손절</div>
+                         </div>
+                      </div>
+                   </div>
+                 ) : plan.secondOrderKrw > 0 ? (
                    <div className="bg-muted/10 rounded-lg p-3 border border-border/50 relative group">
                       <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
                          <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-pointer"/>
                       </div>
-                      <div className="text-xs text-muted-foreground font-semibold mb-2">2nd Entry (Deep Dip, 30%)</div>
+                      <div className="text-xs text-muted-foreground font-semibold mb-2">2nd Entry (2.0x ATR Drop, 50%)</div>
                       <div className="grid grid-cols-2 gap-4">
                          <div>
-                           <div className="text-[10px] uppercase text-muted-foreground">Target Rate (-1%)</div>
+                           <div className="text-[10px] uppercase text-muted-foreground">Target Rate (-2%)</div>
                            <div className="font-bold text-lg text-blue-400/80">{plan.secondOrderRate.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
                          </div>
                          <div>
@@ -154,7 +178,7 @@ export default async function TossPlanPage() {
                          </div>
                       </div>
                    </div>
-                 )}
+                 ) : null}
 
                  {/* 3rd Order */}
                  {plan.thirdOrderKrw > 0 && (
@@ -162,7 +186,7 @@ export default async function TossPlanPage() {
                       <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
                          <Copy className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-pointer"/>
                       </div>
-                      <div className="text-xs text-muted-foreground font-semibold mb-2">3rd Entry (Extreme Dip, 30%)</div>
+                      <div className="text-xs text-muted-foreground font-semibold mb-2">3rd Entry (2.0x ATR Drop, 20%)</div>
                       <div className="grid grid-cols-2 gap-4">
                          <div>
                            <div className="text-[10px] uppercase text-muted-foreground">Target Rate (-1.8%)</div>

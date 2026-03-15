@@ -7,6 +7,8 @@ export interface PositionConfig {
   accountRiskPct: number;    // e.g. 0.007 for 0.7%
   defaultStopLossPct: number;// e.g. 0.018 for 1.8%
   defaultTakeProfitPct: number; // e.g. 0.03 for 3.0%
+  tradingProfile?: 'V6_MACRO_SWING' | 'V7_MARGIN_SCALP';
+  leverageRatio?: number;       // e.g., 10 (10x leverage)
 }
 
 export interface CurrencyConfig {
@@ -35,10 +37,10 @@ export interface SizingResult {
 }
 
 const MAX_WEIGHTS = {
-  A: 0.18,
-  B: 0.15,
-  C: 0.12,
-  D: 0.08,
+  A: 0.40, // V6.0 macro swing needs heavy 40% concentration
+  B: 0.35,
+  C: 0.30,
+  D: 0.25,
 };
 
 export function calcPositionSizing(
@@ -57,9 +59,16 @@ export function calcPositionSizing(
   const target2Pct = portfolio.defaultTakeProfitPct;
 
   // 권장총진입금액 = 총자금 × 계좌위험률 ÷ 손절폭
-  const baseEntryKrw = (portfolio.totalCapitalKrw * portfolio.accountRiskPct) / stopLossPct;
+  let baseEntryKrw = (portfolio.totalCapitalKrw * portfolio.accountRiskPct) / stopLossPct;
 
-  logs.push(`기본 목표 투입 금액: ${Math.round(baseEntryKrw).toLocaleString()} KRW (총 자산 ${(portfolio.accountRiskPct * 100).toFixed(2)}% 리스크 / 손절폭 ${(stopLossPct * 100).toFixed(2)}%)`);
+  // Apply Leverage if Margin Strategy is active
+  if (portfolio.tradingProfile === 'V7_MARGIN_SCALP') {
+    const lev = portfolio.leverageRatio || 10;
+    baseEntryKrw = baseEntryKrw * lev;
+    logs.push(`🚀 V7 마진 스캘핑 모드 활성화: 레버리지 ${lev}x 적용 -> 1차 기초 투입액 증폭`);
+  }
+
+  logs.push(`기본 목표 투입 금액(증거금/레버리지 반영): ${Math.round(baseEntryKrw).toLocaleString()} KRW (총 자산 ${(portfolio.accountRiskPct * 100).toFixed(2)}% 리스크 / 손절폭 ${(stopLossPct * 100).toFixed(2)}%)`);
 
   // ==========================================
   // 2. Modifiers
@@ -111,14 +120,22 @@ export function calcPositionSizing(
   }
 
   // ==========================================
-  // 4. Split Targets (40%, 30%, 30%)
+  // 4. Split Targets (V6 = 2 Tranches, V7 = 1 Fast Tranche)
   // ==========================================
   const finalRounded = Math.round(finalCalculatedKrw);
-  const firstEntry = Math.round(finalRounded * 0.4);
-  const secondEntry = Math.round(finalRounded * 0.3);
-  const thirdEntry = finalRounded - firstEntry - secondEntry; // Absorb rounding
-
-  logs.push(`최종 권장 진입 금액: ${finalRounded.toLocaleString()} KRW`);
+  let trancheEntry = Math.round(finalRounded * 0.5);
+  let firstEntry = trancheEntry;
+  let secondEntry = trancheEntry; // The remaining 50% for the deep DCA target
+  let thirdEntry = 0; 
+  
+  if (portfolio.tradingProfile === 'V7_MARGIN_SCALP') {
+     // Scalping usually involves a single quick entry to capture momentum
+     firstEntry = finalRounded;
+     secondEntry = 0;
+     logs.push(`최종 권장 총 진입 금액: ${finalRounded.toLocaleString()} KRW (V7 단타 100% 진입)`);
+  } else {
+     logs.push(`최종 권장 총 진입 금액: ${finalRounded.toLocaleString()} KRW (V6 스윙 2분할 1차: ${trancheEntry.toLocaleString()} KRW)`);
+  }
 
   return {
     recommendedTotalKrw: finalRounded,

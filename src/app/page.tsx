@@ -178,9 +178,9 @@ export default async function DashboardPage() {
               <th className="px-6 py-5 font-bold text-center">Regime</th>
               <th className="px-6 py-5 font-bold text-center">Score</th>
               <th className="px-6 py-5 font-bold text-center">Engine Step</th>
-              <th className="px-6 py-5 font-bold text-right">Rec. Capital</th>
-              <th className="px-6 py-5 font-bold text-right text-emerald-400/80">Profit Target 🎯</th>
-              <th className="px-6 py-5 font-bold text-center">Toss Route</th>
+              <th className="px-6 py-5 font-bold text-right">추천 투입금(KRW)</th>
+              <th className="px-6 py-5 font-bold text-right">익절 🎯 / 물타기 📥</th>
+              <th className="px-6 py-5 font-bold text-center">Toss 실행 버튼</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -229,22 +229,49 @@ export default async function DashboardPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="font-medium text-gray-300">{row.score?.recommendedTotalKrw?.toLocaleString() || '-'}</div>
-                    {isBuy && row.score?.firstEntryKrw && (
-                      <div className="text-[11px] font-bold text-emerald-400/80 mt-1 uppercase tracking-wider">T1: {row.score.firstEntryKrw.toLocaleString()}</div>
+                    {row.score?.recommendedTotalKrw ? (
+                      <div>
+                        <div className="font-bold text-gray-100 text-base">{row.score.recommendedTotalKrw.toLocaleString()} 원</div>
+                        {action === 'BUY_ADD' && (
+                          <div className="text-[10px] font-bold text-emerald-400/80 mt-1 uppercase tracking-wider">1차 분할 투입권장</div>
+                        )}
+                        {action === 'BUY_1' && (
+                          <div className="text-[10px] font-bold text-emerald-400/80 mt-1 uppercase tracking-wider">전액 투입권장</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-600">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right tabular-nums text-gray-400 font-medium">
-                    {row.score?.targetRate1?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || '-'}
+                  <td className="px-6 py-4 text-right tabular-nums text-sm">
+                    {row.score?.targetRate1 || row.score?.dcaTargetRate ? (
+                      <div className="flex flex-col gap-1 items-end">
+                        <div className="text-emerald-400 font-bold bg-emerald-400/10 px-2 py-0.5 rounded-md border border-emerald-400/20" title="Take Profit Level (+2.5x ATR)">
+                          🎯 {row.score?.targetRate1?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || '-'}
+                        </div>
+                        {row.score?.dcaTargetRate ? (
+                          <div className="text-blue-400 font-bold bg-blue-400/10 px-2 py-0.5 rounded-md border border-blue-400/20 mt-1" title="Next DCA Level (-1.5x ATR)">
+                            📥 {row.score?.dcaTargetRate.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </div>
+                        ) : (
+                          <div className="text-gray-500 font-bold bg-gray-500/10 px-2 py-0.5 rounded-md border border-gray-500/20 mt-1 line-through" title="V3.0 Grid Strategy is active">
+                            🚨 무손절
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-600 font-medium">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {row.tossPlan ? (
-                      <span className="inline-flex items-center bg-blue-500/10 text-blue-400 text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md border border-blue-500/20">
-                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse mr-1.5"/> PENDING
-                      </span>
-                    ) : (
-                       action.includes('AUTO') ? <span className="text-[10px] uppercase font-bold tracking-wider text-primary">Routing</span> : <span className="text-gray-600">-</span>
-                    )}
+                    {(() => {
+                      if (action === 'BUY_1') return <span className="inline-flex items-center text-white bg-blue-600 px-3 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-blue-500 transition-colors shadow-blue-500/20 w-full justify-center">전액 매수하기</span>;
+                      if (action === 'BUY_ADD') return <span className="inline-flex items-center text-white bg-blue-500/80 px-3 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-blue-400 transition-colors w-full justify-center">50% 분할 매수</span>;
+                      if (action === 'SELL_ALL') return <span className="inline-flex items-center text-white bg-rose-600 px-3 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-rose-500 transition-colors shadow-rose-500/20 w-full justify-center">전량 매도하기</span>;
+                      if (action === 'SELL_SPLIT') return <span className="inline-flex items-center text-white bg-rose-500/80 px-3 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-rose-400 transition-colors w-full justify-center">50% 분할 매도</span>;
+                      if (action === 'HOLD') return <span className="text-gray-400 font-bold text-sm bg-white/5 py-2 px-3 rounded-lg w-full inline-block">보유 / 관망</span>;
+                      return <span className="text-gray-600 font-bold text-sm bg-black/20 py-2 px-3 rounded-lg border border-white/5 w-full inline-block">대기</span>;
+                    })()}
                   </td>
                 </tr>
               )

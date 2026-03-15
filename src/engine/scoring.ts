@@ -20,12 +20,13 @@ export interface TechIndicatorsInput {
   dailyZScore: number;
   priceToMaRatio: number; // Current Price / 200MA
   atrPercentage: number;   // ATR / Current Price
+  tradingProfile?: 'V6_MACRO_SWING' | 'V7_MARGIN_SCALP';
 }
 
 export interface PatternInput {
+  xgboostProbabilityUp5d: number; // 0 to 1 ML probability
   similarPatternCount: number;
-  averageHistoricalWinRate: number; // 0 to 1
-  averageHistoricalReturn: number;  // Ex: 0.015 for 1.5%
+  expectedReturn5d: number; // Avg expected return of matches
 }
 
 export interface TimingInput {
@@ -78,6 +79,9 @@ export interface FinalDecision {
   finalScore: number;
   actionCode: ActionCode;
   reasoning: string[];
+  dynamicTakeProfitPct?: number;
+  dynamicStopLossPct?: number;
+  dynamicDcaTargetPct?: number;
 }
 
 
@@ -103,12 +107,12 @@ export function calcStructureScore(input: TechIndicatorsInput): ScoreResult {
   }
 
   // Z-Score Mean Regression Logic
-  if (input.dailyZScore < -2) {
+  if (input.dailyZScore < -1.0) {
     score += 5;
-    reasoning.push(`Price is > 2 std deviations below mean (Z: ${input.dailyZScore.toFixed(2)}).`);
-  } else if (input.dailyZScore > 2) {
+    reasoning.push(`Price is oversold below mean (Z: ${input.dailyZScore.toFixed(2)}).`);
+  } else if (input.dailyZScore > 1.0) {
     score -= 5;
-    reasoning.push(`Price is > 2 std deviations above mean (Z: ${input.dailyZScore.toFixed(2)}).`);
+    reasoning.push(`Price is overbought above mean (Z: ${input.dailyZScore.toFixed(2)}).`);
   }
 
   score = Math.max(0, Math.min(20, score));
@@ -117,24 +121,27 @@ export function calcStructureScore(input: TechIndicatorsInput): ScoreResult {
 
 /**
  * 2. Pattern Score (Max 20)
- * Evaluates historical pattern matching.
+ * Evaluates ML XGBoost prediction + Historical Matching
  */
 export function calcPatternScore(input: PatternInput): ScoreResult {
   let score = 0;
   const reasoning: string[] = [];
 
-  if (input.similarPatternCount < 5) {
-    reasoning.push(`Insufficient historical patterns found (${input.similarPatternCount}).`);
-    return { score: 5, reasoning }; // Neutral Low
+  // XGBoost ML Score heavily dominates this category now (Provides 0-20 points directly)
+  // Maps 0.0 -> 0 points, 0.5 -> 10 points, 1.0 -> 20 points
+  score += input.xgboostProbabilityUp5d * 20; 
+  reasoning.push(`AI 모델 상승 예측 확률 ${(input.xgboostProbabilityUp5d * 100).toFixed(1)}% -> ${score.toFixed(1)}점 부여.`);
+
+  // Historical Check Penalty
+  if (input.similarPatternCount < 5 && input.xgboostProbabilityUp5d > 0.6) {
+    score -= 3;
+    reasoning.push(`과거 유사 데이터 부족(${input.similarPatternCount}개)으로 ML 예측 신뢰도 하향조정 (-3점).`);
   }
 
-  // Score based on win rate of similar setups
-  score += input.averageHistoricalWinRate * 15; 
-  reasoning.push(`Historical win rate of ${Math.round(input.averageHistoricalWinRate * 100)}% provides ${Math.round(score)} pts.`);
-
-  if (input.averageHistoricalReturn > 0.01) {
-    score += 5;
-    reasoning.push(`Average historical return is strong (>1%).`);
+  // Strong return expectation boost
+  if (input.expectedReturn5d > 0.01) {
+    score += 2;
+    reasoning.push(`기대 수익 가중치 반영 (+2점).`);
   }
 
   score = Math.max(0, Math.min(20, score));
@@ -212,12 +219,18 @@ export function calcRegimeFitScore(input: RegimeInput): ScoreResult {
   if (input.strategyGroup === 'C' && input.regimeCategory === 'RANGING') {
     score += 5;
     reasoning.push('+5 Boost: Group C currency perfectly suits a RANGING regime.');
-  } else if (input.strategyGroup === 'A' && input.regimeCategory.includes('TRENDING')) {
+  } else if (input.strategyGroup === 'A' && input.regimeCategory === 'TRENDING_UP') {
     score += 5;
-    reasoning.push('+5 Boost: Group A currency perfectly suits a TRENDING regime.');
+    reasoning.push('+5 Boost: Group A currency perfectly suits a TRENDING_UP regime.');
   } else if (input.regimeCategory === 'VOLATILE') {
     score -= 5;
     reasoning.push('-5 Penalty: Highly volatile market regime.');
+  }
+
+  // Trend Filter: Penalize strong downtrend (Falling knives)
+  if (input.regimeCategory === 'TRENDING_DOWN') {
+    score -= 10;
+    reasoning.push('🚨 -10 Penalty: Strong TRENDING_DOWN regime detected. Counter-trend longs discouraged.');
   }
 
   score = Math.max(0, Math.min(20, score));
@@ -277,7 +290,7 @@ export function calcFinalDecision(
   const regime = calcRegimeFitScore(regimeInput);
   const ev = calcExpectedValueScore(expectedValInput);
 
-  const finalScore = parseFloat((struct.score + pattern.score + timing.score + news.score + regime.score + ev.score).toFixed(2));
+  let finalScore = parseFloat((struct.score + pattern.score + timing.score + news.score + regime.score + ev.score).toFixed(2));
   
   const reasoning = [
     ...struct.reasoning,
@@ -287,6 +300,30 @@ export function calcFinalDecision(
     ...regime.reasoning,
     ...ev.reasoning
   ];
+
+  // 1. Dynamic TP, SL & DCA Targets based on Active Profile
+  const currentAtr = techInput.atrPercentage > 0 ? techInput.atrPercentage : 0.005; // Fallback 0.5%
+  
+  let dynamicTakeProfitPct = parseFloat((currentAtr * 2.0).toFixed(4));
+  let dynamicDcaTargetPct = parseFloat((currentAtr * 2.0).toFixed(4));
+  let dynamicStopLossPct = 0; // Stop loss defaults to 0 (disabled)
+
+  if (techInput.tradingProfile === 'V7_MARGIN_SCALP') {
+    dynamicTakeProfitPct = parseFloat((currentAtr * 1.0).toFixed(4)); // Tighter TP to catch 1H-4H bursts
+    dynamicStopLossPct = parseFloat((currentAtr * 0.5).toFixed(4));  // -0.5x ATR Strict Cut-loss
+    dynamicDcaTargetPct = 0; // No DCA averaging down on margin scalps
+    reasoning.push(`🎯 V7.0 Scalp Config -> TP Target: +${(dynamicTakeProfitPct * 100).toFixed(2)}% | Stop Loss: -${(dynamicStopLossPct * 100).toFixed(2)}%`);
+    reasoning.push(`🛡️ Intraday Margin Scalp activated (Tight Cut-loss, No DCA 물타기).`);
+  } else {
+    reasoning.push(`🎯 V6.0 Grid Config -> TP Target: +${(dynamicTakeProfitPct * 100).toFixed(2)}% | Next DCA Level: -${(dynamicDcaTargetPct * 100).toFixed(2)}%`);
+    reasoning.push(`🛡️ Macro Swing approach activated (Max 2 levels, heavily concentrated).`);
+  }
+
+  // 2. Trend Hard-Filter (Override to stop falling knives)
+  if (regimeInput.regimeCategory === 'TRENDING_DOWN' && finalScore >= 50) {
+    reasoning.push(`⛔ FILT: Score capped to 49 (Waterfall Downtrend - Do not catch falling knives)`);
+    finalScore = 49;
+  }
 
   // Map Final Score to Action Code
   let actionCode = ActionCode.WAIT;
@@ -311,6 +348,9 @@ export function calcFinalDecision(
     expectedValueScore: parseFloat(ev.score.toFixed(2)),
     finalScore,
     actionCode,
-    reasoning
+    reasoning,
+    dynamicTakeProfitPct,
+    dynamicStopLossPct,
+    dynamicDcaTargetPct
   };
 }
