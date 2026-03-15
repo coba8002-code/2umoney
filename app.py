@@ -93,11 +93,12 @@ def fetch_live_fx_data():
     # Handle JPY scaling (usually quoted per 100 JPY in Korea, but yfinance is per 1 JPY)
     # We will adjust JPY to per 100 JPY later for familiar UI.
     
-    try:
-        data = yf.download(tickers, period="2d", interval="1d", group_by="ticker", progress=False)
-    except Exception as e:
-        st.error(f"Failed to fetch live data: {e}")
-        return pd.DataFrame()
+    # Bypassing yfinance completely for cloud boot stability
+    # try:
+    #     data = yf.download(tickers, period="2d", interval="1d", group_by="ticker", progress=False)
+    # except Exception as e:
+    #     st.error(f"Failed to fetch live data: {e}")
+    #     return pd.DataFrame()
 
     results = []
     for c in CURRENCIES:
