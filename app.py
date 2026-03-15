@@ -101,24 +101,33 @@ def fetch_live_fx_data():
 
     results = []
     for c in CURRENCIES:
-        ticker = f"{c}KRW=X"
+        # ticker = f"{c}KRW=X" # Not needed with mock data
         try:
-            if isinstance(data.columns, pd.MultiIndex):
-                # Multiple tickers downloaded
-                close_today = float(data[ticker]['Close'].iloc[-1])
-                close_yday = float(data[ticker]['Close'].iloc[0])
+            # if isinstance(data.columns, pd.MultiIndex):
+            #     # Multiple tickers downloaded
+            #     close_today = float(data[ticker]['Close'].iloc[-1])
+            #     close_yday = float(data[ticker]['Close'].iloc[0])
+            # else:
+            #     # Single ticker fallback
+            #     close_today = float(data['Close'].iloc[-1])
+            #     close_yday = float(data['Close'].iloc[0])
+            
+            # Use mock data
+            if c in mock_prices:
+                close_today = mock_prices[c]["current"]
+                close_yday = mock_prices[c]["prev"]
+                change_pct = mock_prices[c]["change_pct"]
             else:
-                # Single ticker fallback
-                close_today = float(data['Close'].iloc[-1])
-                close_yday = float(data['Close'].iloc[0])
+                # Should not happen if generate_mock_prices covers all CURRENCIES
+                continue
                 
             if c == "JPY" or c == "VND" or c == "IDR":
                 # Scale typical asian currencies for readability (e.g. JPY 100)
-                multiplier = 100 if c == "JPY" else 100
-                close_today *= multiplier
-                close_yday *= multiplier
-                
-            change_pct = ((close_today - close_yday) / close_yday) * 100
+                multiplier = 100 if c == "JPY" else 100 # Assuming VND/IDR also scaled by 100 for display
+                # Mock data is already scaled for JPY, VND, IDR in generate_mock_prices
+                # So no additional scaling needed here if mock data is used.
+                # If yfinance was active, this would apply.
+                pass 
             
             # V7 Engine Mock Calculations
             # Here we simulate the V7 engine logic (since we are isolated from Prisma DB on cloud)
