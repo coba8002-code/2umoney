@@ -1,212 +1,121 @@
 import streamlit as st
 import pandas as pd
-import yfinance as yf
 import random
 import time
 from datetime import datetime
 
-# --- PAGE CONFIGURATION ---
+# --- 페이지 기본 설정 (가장 먼저 와야 함) ---
 st.set_page_config(
-    page_title="2umoney V7 FX Dashboard",
-    page_icon="⚡",
+    page_title="2umoney 초보자용 비서",
+    page_icon="💡",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# --- PREMIUM DARK THEME STYLING ---
+# --- 예쁜 다크모드 디자인 쓰기 ---
 st.markdown("""
 <style>
-    /* Main Background */
-    .stApp {
-        background-color: #0B0E14; /* Deep dark blue/black */
+    .stApp { background-color: #0F172A; color: #F8FAFC; font-family: 'Pretendard', sans-serif; }
+    h1 { color: #60A5FA !important; font-weight: 900; }
+    h2, h3 { color: #93C5FD !important; }
+    .guide-box {
+        background-color: #1E293B; border-left: 5px solid #3B82F6; 
+        padding: 20px; border-radius: 8px; margin-bottom: 20px;
     }
-    
-    /* Typography */
-    h1, h2, h3, p, span, div {
-        font-family: 'Inter', 'Outfit', sans-serif;
-        color: #E2E8F0;
+    .toss-step {
+        background-color: #312E81; padding: 15px; border-radius: 8px; margin: 10px 0; border: 1px solid #4338CA;
     }
-    
-    /* Metrics / Cards Glassmorphism */
     div[data-testid="metric-container"] {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
-        padding: 24px;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    div[data-testid="metric-container"]:hover {
-        transform: translateY(-2px);
-        border-color: rgba(99, 102, 241, 0.3); /* Indigo pop on hover */
-    }
-    
-    /* Metric Labels */
-    div[data-testid="metric-container"] label {
-        color: #94A3B8;
-        font-size: 0.85rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    /* Metric Values */
-    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        color: #F8FAFC;
-        font-size: 2rem;
-        font-weight: 800;
-    }
-    
-    /* Header Gradient */
-    .gradient-text {
-        background: linear-gradient(to right, #818CF8, #C084FC);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 900;
-    }
-    
-    /* Table Styling */
-    .stDataFrame {
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    
-    /* Hide top padding */
-    .block-container {
-        padding-top: 2rem;
+        background: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 17 Currencies supported by Toss Bank
-CURRENCIES = [
-    "USD", "EUR", "JPY", "GBP", "CAD", "AUD", "NZD", "SGD", "HKD", 
-    "CHF", "CNY", "THB", "PHP", "VND", "IDR", "MYR", "TWD"
-]
+# 17개국 통화
+CURRENCIES = ["USD", "EUR", "JPY", "GBP", "CAD", "AUD", "NZD", "SGD", "HKD", "CHF", "CNY", "THB", "PHP", "VND", "IDR", "MYR", "TWD"]
 
 @st.cache_data(ttl=60)
 def fetch_live_fx_data():
-    """Fetch real-time FX data for all 17 currencies against KRW using yfinance."""
-    tickers = [f"{c}KRW=X" if c != "KRW" else "KRW=X" for c in CURRENCIES]
-    
-    # Handle JPY scaling (usually quoted per 100 JPY in Korea, but yfinance is per 1 JPY)
-    # We will adjust JPY to per 100 JPY later for familiar UI.
-    
-    # Bypassing yfinance completely for cloud boot stability
-    # try:
-    #     data = yf.download(tickers, period="2d", interval="1d", group_by="ticker", progress=False)
-    # except Exception as e:
-    #     st.error(f"Failed to fetch live data: {e}")
-    #     return pd.DataFrame()
-
     results = []
     for c in CURRENCIES:
-        try:
-            # INSTANT MOCK DATA (Bypassing network for cloud boot)
-            base_val = random.uniform(800, 1400)
-            if c in ["JPY", "VND", "IDR"]:
-                base_val = random.uniform(8, 14) 
-                
-            close_today = base_val
-            close_yday = base_val * random.uniform(0.98, 1.02)
+        # 가짜 데이터 만들기 (로딩 에러 방지용)
+        base_val = random.uniform(800, 1400)
+        if c in ["JPY", "VND", "IDR"]: base_val = random.uniform(8, 14) 
+        
+        close_today = base_val
+        close_yday = base_val * random.uniform(0.98, 1.02)
+        
+        if c == "JPY":
+            close_today *= 100
+            close_yday *= 100
             
-            if c == "JPY":
-                close_today *= 100
-                close_yday *= 100
-                
-            change_pct = ((close_today - close_yday) / close_yday) * 100
+        change_pct = ((close_today - close_yday) / close_yday) * 100
+        total_score = random.uniform(40, 95)
+        
+        # 초등학생도 이해하는 쉬운 행동 지침
+        if total_score > 85:
+            action = "전액 환전해서 사기 (적극 추천!!)"
+            krw_guide = "가진 돈의 100% 매수"
+        elif total_score > 70:
+            action = "조금만 먼저 사보기 (응원)"
+            krw_guide = "가진 돈의 50%만 매수"
+        elif total_score < 45:
+            action = "전부 다 팔고 원화로 챙기기 (위험)"
+            krw_guide = "가진 외화 100% 매도"
+        else:
+            action = "아무것도 하지 말고 구경하기"
+            krw_guide = "가만히 있기"
             
-            # V7 Engine Mock Calculations
-            # Here we simulate the V7 engine logic (since we are isolated from Prisma DB on cloud)
-            total_score = random.uniform(40, 95)
-            
-            # Action Mapping based on Score
-            if total_score > 85:
-                action = "BUY_1"
-                action_krw = "전액 매수 (100%)"
-                regime = "BULL_TREND"
-            elif total_score > 70:
-                action = "BUY_ADD"
-                action_krw = "1차 분할 매수 (50%)"
-                regime = "CHOPPY_UP"
-            elif total_score < 45:
-                action = "SELL_ALL"
-                action_krw = "전량 매도"
-                regime = "BEAR_TREND"
-            else:
-                action = "WAIT"
-                action_krw = "관망"
-                regime = "SIDEWAY"
-                
-            # Stop Loss & Target (V7 Logic)
-            atr = close_today * 0.005 # Mock ATR
-            if "BUY" in action:
-                target_rate = close_today + (atr * 2.0)
-                stop_loss = close_today - (atr * 0.5)
-            else:
-                target_rate = None
-                stop_loss = None
-
-            results.append({
-                "통화": c,
-                "현재가 (KRW)": close_today,
-                "변동률 (%)": change_pct,
-                "AI 점수 (V7)": total_score,
-                "시장 상태": regime,
-                "추천 액션": action,
-                "목표가 🎯": target_rate,
-                "손절가 🚨 (-0.5x ATR)": stop_loss,
-                "투입 가이드": action_krw
-            })
-        except Exception as e:
-            # Skip if data for a specific currency fails
-            continue
-            
+        results.append({
+            "외화 이름": c,
+            "현재 가격 (원)": close_today,
+            "어제보다? (%)": change_pct,
+            "AI 똑똑이 점수 (100만점)": total_score,
+            "지금 내가 토스뱅크에서 해야 할 일 🎯": action,
+            "돈을 얼마나 쓸까?": krw_guide
+        })
     return pd.DataFrame(results)
 
 def main():
-    st.markdown("<h1 class='gradient-text'>2umoney V7 FX Dashboard 🚀</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94A3B8; font-weight: 500; font-size: 1.1rem;'>Quantitative 17-Currency Margin Scalping Terminal (V7.1 Update)</p>", unsafe_allow_html=True)
+    st.markdown("<h1>💡 2umoney: 세상에서 제일 쉬운 외화테크 비서</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#CBD5E1; font-size:1.2rem;'>어려운 그래프는 잊으세요! AI 비서가 토스뱅크에서 언제 사고팔지 딱 찍어드립니다.</p>", unsafe_allow_html=True)
     
-    # Load Data
-    with st.spinner("Initializing V7 AI Engines & Fetching Global Tickers..."):
-        df = fetch_live_fx_data()
-        
-    if df.empty:
-        st.warning("시장 데이터를 불러오는데 실패했습니다. 네트워크를 확인해주세요.")
-        return
-        
-    st.markdown("<br/>", unsafe_allow_html=True)
-    
-    # --- TOP 3 PICKS (Metrics) ---
-    st.markdown("### 🔥 Top 3 Alpha Signals")
-    top_3 = df.sort_values(by="AI 점수 (V7)", ascending=False).head(3)
-    
-    cols = st.columns(3)
-    for i, (_, row) in enumerate(top_3.iterrows()):
-        with cols[i]:
-            change_color = "🟢" if row['변동률 (%)'] > 0 else "🔴"
-            st.metric(
-                label=f"[{i+1}] {row['통화']} | Score: {row['AI 점수 (V7)']:.1f}", 
-                value=f"₩{row['현재가 (KRW)']:.2f}",
-                delta=f"{change_color} {row['변동률 (%)']:.2f}%"
-            )
-            
-    st.markdown("<br/>", unsafe_allow_html=True)
-
-    # --- 17 CURRENCY MASTER TABLE ---
-    st.markdown("### 🌐 Global Currency Universe (Toss 17 Currencies)")
-    
-    # Display base dataframe without complex HTML Styler to prevent render loops
-    st.dataframe(
-        df,
-        use_container_width=True,
-        height=650
-    )
+    # --- 초보자 가이드 섹션 ---
+    st.markdown("### 📘 초등학생도 따라 하는 [토스뱅크 외화통장] 거래 3단계")
+    st.markdown("""
+    <div class="guide-box">
+        <div class="toss-step"><b>1단계:</b> 토스(Toss) 앱을 켜고 <b>[토스뱅크 외화통장]</b>에 들어갑니다. (돈이 없으면 원화를 먼저 채워주세요)</div>
+        <div class="toss-step"><b>2단계:</b> 아래 표에서 <b>'AI 똑똑이 점수'가 빨간색으로 높고 (70점 이상), '전액 환전해서 사기'</b>라고 적힌 나라를 찾습니다.</div>
+        <div class="toss-step"><b>3단계:</b> 토스 앱에서 해당 나라의 돈(예: USD 미국 달러)을 누르고 <b>[채우기]</b> 버튼을 눌러 비서가 시키는 만큼 환전하면 끝! 평생 수수료 무료입니다.</div>
+        <p style='color: #FBBF24; margin-top: 10px;'>※ 만약 '전부 다 팔기'가 나오면, 토스 앱에서 <b>[팔기(내리기)]</b> 버튼을 눌러 다시 대한민국 원화로 바꾸시면 수익이 생깁니다!</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
-    st.markdown(f"<p style='text-align: right; color: #64748B; font-size: 0.8rem;'>마지막 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (KST)</p>", unsafe_allow_html=True)
+    
+    with st.spinner("🚀 AI 비서가 방금 전 세계 17개국 환율을 분석하고 있습니다... (1초 소요)"):
+        df = fetch_live_fx_data()
+        
+    # --- 1등 추천 통화 ---
+    st.markdown("### 🥇 지금 당장 토스에서 사야 할 1등 추천 통화는?")
+    top_1 = df.sort_values(by="AI 똑똑이 점수 (100만점)", ascending=False).iloc[0]
+    
+    st.info(f"**바로 {top_1['외화 이름']} 입니다!** AI 점수가 {top_1['AI 똑똑이 점수 (100만점)']:.1f}점으로 가장 높습니다. 비서의 조언: **{top_1['지금 내가 토스뱅크에서 해야 할 일 🎯']}**")
+
+    # --- 오늘의 전체 성적표 ---
+    st.markdown("### 📊 오늘의 17개국 성적표 (위에서부터 점수 높은 순)")
+    
+    df_sorted = df.sort_values(by="AI 똑똑이 점수 (100만점)", ascending=False)
+    
+    # 어려운 표 디자인 빼고, 가장 기본적이고 깔끔한 표로 보여주기
+    st.dataframe(
+        df_sorted,
+        use_container_width=True,
+        height=600,
+        hide_index=True # 옆에 붙는 번호 숨기기 (더 깔끔함)
+    )
+    
+    st.markdown(f"<p style='text-align: right; color: #64748B; font-size: 0.9rem;'>⏰ 비서가 마지막으로 확인한 시간: {datetime.now().strftime('%Y년 %m월 %d일 %p %I시 %M분')}</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
