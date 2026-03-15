@@ -169,8 +169,8 @@ def fetch_live_fx_data():
     return pd.DataFrame(results)
 
 def main():
-    st.markdown("<h1 class='gradient-text'>2umoney V7 FX Dashboard</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #94A3B8; font-weight: 500; font-size: 1.1rem;'>Quantitative 17-Currency Margin Scalping Terminal (Live Market Data)</p>", unsafe_allow_html=True)
+    st.markdown("<h1 class='gradient-text'>2umoney V7 FX Dashboard 🚀</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #94A3B8; font-weight: 500; font-size: 1.1rem;'>Quantitative 17-Currency Margin Scalping Terminal (V7.1 Update)</p>", unsafe_allow_html=True)
     
     # Load Data
     with st.spinner("Initializing V7 AI Engines & Fetching Global Tickers..."):
