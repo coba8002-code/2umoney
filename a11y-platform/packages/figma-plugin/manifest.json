@@ -1,0 +1,10 @@
+{
+  "name": "A11y Check & Fix",
+  "id": "PLACEHOLDER",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/index.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"] }
+}
