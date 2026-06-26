@@ -9,25 +9,49 @@ import {
 
 /** 플레이그라운드용 편집 가능한 디자인 모델 (시각 미리보기 + 스캔 입력 겸용) */
 interface DesignState {
+  kind: 'commerce' | 'kiosk';
+  hero: string;
   title: { text: string; fg: string };
   desc: { text: string; fg: string };
   price: { text: string; fg: string };
   bg: string;
+  buyText: string;
+  buyBg: string;
   buyW: number;
   buyH: number;
   favLabeled: boolean;
   heroAlt: boolean;
 }
 
-const INITIAL: DesignState = {
-  title: { text: '무선 이어폰', fg: '#222222' },
-  desc: { text: '노이즈 캔슬링 · 24시간 재생', fg: '#aaaaaa' },
-  price: { text: '129,000원', fg: '#ffd54f' },
-  bg: '#ffffff',
-  buyW: 120,
-  buyH: 36,
-  favLabeled: false,
-  heroAlt: false,
+const PRESETS: Record<DesignState['kind'], DesignState> = {
+  commerce: {
+    kind: 'commerce',
+    hero: '🎧',
+    title: { text: '무선 이어폰', fg: '#222222' },
+    desc: { text: '노이즈 캔슬링 · 24시간 재생', fg: '#aaaaaa' },
+    price: { text: '129,000원', fg: '#ffd54f' },
+    bg: '#ffffff',
+    buyText: '구매하기',
+    buyBg: '#1976d2',
+    buyW: 120,
+    buyH: 36,
+    favLabeled: false,
+    heroAlt: false,
+  },
+  kiosk: {
+    kind: 'kiosk',
+    hero: '☕',
+    title: { text: '아메리카노', fg: '#3e2723' },
+    desc: { text: '진한 에스프레소와 물', fg: '#b0a59f' },
+    price: { text: '4,500원', fg: '#c8b08a' },
+    bg: '#fff8f0',
+    buyText: '담기',
+    buyBg: '#6d4c41',
+    buyW: 96,
+    buyH: 40,
+    favLabeled: false,
+    heroAlt: false,
+  },
 };
 
 function toNodes(d: DesignState): A11yNode[] {
@@ -35,14 +59,14 @@ function toNodes(d: DesignState): A11yNode[] {
     {
       id: 'card',
       type: 'container',
-      name: '상품 카드',
+      name: '카드',
       bgColor: d.bg,
       children: [
-        { id: 'hero', type: 'image', name: '대표 이미지', altText: d.heroAlt ? '무선 이어폰 제품 사진' : null },
+        { id: 'hero', type: 'image', name: '대표 이미지', altText: d.heroAlt ? `${d.title.text} 사진` : null },
         { id: 'title', type: 'text', name: '제목', fgColor: d.title.fg, bgColor: d.bg, fontSizePx: 20, bold: true },
         { id: 'desc', type: 'text', name: '설명', fgColor: d.desc.fg, bgColor: d.bg, fontSizePx: 14 },
         { id: 'price', type: 'text', name: '가격', fgColor: d.price.fg, bgColor: d.bg, fontSizePx: 16, bold: true },
-        { id: 'buy', type: 'button', name: '구매하기', label: '구매하기', fgColor: '#ffffff', bgColor: '#1976d2', width: d.buyW, height: d.buyH },
+        { id: 'buy', type: 'button', name: d.buyText, label: d.buyText, fgColor: '#ffffff', bgColor: d.buyBg, width: d.buyW, height: d.buyH },
         { id: 'fav', type: 'button', name: '찜', label: d.favLabeled ? '찜하기' : null, width: 40, height: 40 },
       ],
     },
@@ -58,12 +82,16 @@ const SEVERITY_COLOR: Record<Finding['severity'], string> = {
 const SOURCE_LABEL: Record<Finding['source'], string> = { auto: '자동', 'ai-assisted': 'AI 보조', manual: '수동' };
 
 export function App() {
-  const [d, setD] = useState<DesignState>(INITIAL);
+  const [d, setD] = useState<DesignState>(PRESETS.commerce);
+  const [dark, setDark] = useState(false);
   const result = useMemo(() => scanNodes(toNodes(d)), [d]);
   const fails = result.findings.filter((f) => f.status === 'fail');
   const rate = Math.round(result.summary.estimatedPassRate * 100);
 
-  /** Finding 의 보정 제안을 디자인 상태에 반영 */
+  function loadScenario(kind: DesignState['kind']) {
+    setD(PRESETS[kind]);
+  }
+
   function applyFix(f: Finding) {
     setD((prev) => {
       const n = { ...prev };
@@ -96,14 +124,21 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${dark ? 'dark' : ''}`}>
       <header className="topbar">
         <div>
           <h1>접근성 검증·자동보정 <span className="tag">플레이그라운드</span></h1>
           <p className="sub">KWCAG 2.2 / WCAG 2.2 AA · 색·크기 보정은 결정론적 알고리즘, 텍스트/판단은 AI 보조</p>
+          <div className="controls">
+            <div className="seg">
+              <button className={d.kind === 'commerce' ? 'on' : ''} onClick={() => loadScenario('commerce')}>커머스</button>
+              <button className={d.kind === 'kiosk' ? 'on' : ''} onClick={() => loadScenario('kiosk')}>키오스크</button>
+            </div>
+            <button className="ghost" onClick={() => setDark((v) => !v)}>{dark ? '☀ 라이트' : '🌙 다크'}</button>
+          </div>
         </div>
         <div className="scorebox">
-          <div className="score" style={{ color: rate >= 80 ? '#1b7f37' : rate >= 50 ? '#e65100' : '#c62828' }}>
+          <div className="score" style={{ color: rate >= 80 ? '#33d17a' : rate >= 50 ? '#ff9d4d' : '#ff6b6b' }}>
             {rate}%
           </div>
           <small>예상 통과율<br />(자동판정 항목 기준)</small>
@@ -111,19 +146,19 @@ export function App() {
       </header>
 
       <div className="cols">
-        {/* 왼쪽: 실제 렌더 미리보기 */}
         <section className="panel">
           <div className="panel-head">디자인 미리보기</div>
           <div className="stage">
             <div className="card" style={{ background: d.bg }}>
-              <div className="hero" aria-label={d.heroAlt ? '무선 이어폰 제품 사진' : undefined}>
-                🎧 {d.heroAlt ? '' : <span className="warn-dot" title="alt 없음" />}
+              <div className="hero">
+                <span className="emoji">{d.hero}</span>
+                {!d.heroAlt && <span className="warn-dot" title="alt 없음" />}
               </div>
               <div className="title" style={{ color: d.title.fg }}>{d.title.text}</div>
               <div className="desc" style={{ color: d.desc.fg }}>{d.desc.text}</div>
               <div className="price" style={{ color: d.price.fg }}>{d.price.text}</div>
               <div className="row">
-                <button className="buy" style={{ width: d.buyW, height: d.buyH }}>구매하기</button>
+                <button className="buy" style={{ width: d.buyW, height: d.buyH, background: d.buyBg }}>{d.buyText}</button>
                 <button className="fav" aria-label={d.favLabeled ? '찜하기' : undefined}>♥</button>
               </div>
             </div>
@@ -131,11 +166,10 @@ export function App() {
           <div className="legend">
             <span className="stat pass">합격 {result.summary.pass}</span>
             <span className="stat fail">불합격 {result.summary.fail}</span>
-            <button className="ghost" onClick={() => setD(INITIAL)}>초기화</button>
+            <button className="ghost" onClick={() => loadScenario(d.kind)}>초기화</button>
           </div>
         </section>
 
-        {/* 오른쪽: 진단 결과 */}
         <section className="panel">
           <div className="panel-head">
             진단 결과

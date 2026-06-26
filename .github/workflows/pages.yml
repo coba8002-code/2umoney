@@ -1,0 +1,53 @@
+name: Deploy A11y Playground to GitHub Pages
+
+# 접근성 플레이그라운드(packages/playground)를 단일 HTML 로 빌드해 GitHub Pages 로 배포.
+# (루트 트레이딩 앱/Vercel 과 무관 — a11y-platform 변경 시에만 동작)
+
+on:
+  push:
+    branches: [claude/jinhaeng-679t9j, main]
+    paths:
+      - 'a11y-platform/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: a11y-platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: a11y-platform/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @app/playground build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: a11y-platform/packages/playground/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
