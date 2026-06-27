@@ -41,8 +41,15 @@ CHROMIUM_PATH=/path/to/chromium pnpm --filter @app/api serve   # http://localhos
 # POST /v1/fix   { "scanResult": <ScanResult>, "acceptRuleIds": ["contrast.text"] }
 # POST /v1/report  <ScanResult>
 # POST /v1/alt   { "nodeId":"hero", "name":"photo", "surroundingText":"...", "dataUrl":"data:image/png;base64,..." }
+# POST /v1/crawl { "url":"https://example.com", "options": { "maxPages":5, "sameOrigin":true } }
 ```
 URL 분석은 서버측 Playwright 가 실제 렌더링한 계산 스타일로 검사하므로 브라우저 CORS 제약이 없습니다.
+
+`POST /v1/crawl` 은 진입 URL 에서 **동일 출처 하위 링크를 따라가며 여러 페이지를 한 번에** 분석합니다
+(`maxPages` 상한 25, 외부·다른 출처 링크 제외). 응답은 페이지별 `ScanResult` 와 집계를 함께 반환합니다.
+
+> 브라우저 단독(플레이그라운드 URL 탭)은 공개 CORS 프록시로 **한 페이지의 정적 HTML**만 가져오며
+> 여러 프록시를 자동 폴백합니다. 프록시는 불안정할 수 있어, 정확·다중 페이지 분석은 위 분석 서버를 권장합니다.
 
 ### 멀티모달 대체텍스트 (C2)
 

@@ -21,6 +21,15 @@ export {
 } from './routes';
 export { collectFromUrl, type CollectOptions, type CollectResult } from './collect';
 export {
+  collectSiteFromUrl,
+  selectCrawlTargets,
+  normalizeLink,
+  type CrawlPlanOptions,
+  type SiteCollectOptions,
+  type SiteCollectResult,
+  type PageCollect,
+} from './crawl';
+export {
   figmaFileToA11yNodes,
   figmaColorToHex,
   parseFigmaFileKey,

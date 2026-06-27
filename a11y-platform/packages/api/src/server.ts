@@ -11,6 +11,7 @@ import cors from '@fastify/cors';
 import { handleScan, handleFix, handleReport, type ScanRequest } from './routes';
 import { scanSnapshot } from './scanService';
 import { collectFromUrl } from './collect';
+import { collectSiteFromUrl } from './crawl';
 import { createAltProvider, type ImageContext, type LlmProvider } from '@app/ai';
 import type { ScanResult } from '@app/core';
 
@@ -50,6 +51,38 @@ export function buildServer(opts: ServerOptions = {}): FastifyInstance {
     }
     const res = handleScan(body);
     return reply.code(res.status).send(res);
+  });
+
+  // 동일 출처 크롤링: 진입 URL 의 하위 링크를 따라가며 여러 페이지를 한 번에 분석.
+  // 브라우저 CORS 제약이 없는 서버측 Playwright 로 실제 렌더링해 수집한다.
+  app.post('/v1/crawl', async (req, reply) => {
+    const body = req.body as {
+      url?: string;
+      options?: { maxPages?: number; sameOrigin?: boolean; pathPrefix?: string; palette?: string[] };
+    };
+    if (!body?.url) return reply.code(400).send({ ok: false, status: 400, error: 'url 이 필요합니다.' });
+    const maxPages = Math.min(Math.max(1, body.options?.maxPages ?? 5), 25); // 안전 상한
+    const site = await collectSiteFromUrl(body.url, {
+      executablePath: opts.chromiumPath,
+      axeSource: opts.axeSource,
+      maxPages,
+      sameOrigin: body.options?.sameOrigin ?? true,
+      pathPrefix: body.options?.pathPrefix,
+    });
+    const pages = site.pages.map((p) => ({
+      url: p.url,
+      result: scanSnapshot(p.snapshot, { axeViolations: p.axeViolations, palette: body.options?.palette }),
+    }));
+    const aggregate = pages.reduce(
+      (acc, p) => {
+        acc.fail += p.result.summary.fail;
+        acc.pass += p.result.summary.pass;
+        acc.total += p.result.findings.length;
+        return acc;
+      },
+      { pages: pages.length, total: 0, pass: 0, fail: 0 },
+    );
+    return reply.send({ ok: true, status: 200, data: { pages, aggregate, visited: site.visited } });
   });
 
   app.post('/v1/fix', async (req, reply) => {
