@@ -62,26 +62,43 @@ const SERIALIZER = `(() => {
   return { root: toSnap(document.body) };
 })()`;
 
+/** 모든 a[href] 의 절대 URL 을 수집 (브라우저가 base 기준으로 해석) */
+export const LINK_EXTRACTOR = `(() => Array.from(document.querySelectorAll('a[href]')).map(a => a.href))()`;
+
+/** playwright-core 를 가변 지정자로 동적 로드(빌드 의존성 분리) */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function loadPlaywright(): Promise<any> {
+  const specifier = 'playwright-core';
+  return import(specifier);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function launchArgs(opts: CollectOptions): any {
+  return opts.executablePath
+    ? { executablePath: opts.executablePath, args: ['--no-sandbox'] }
+    : { args: ['--no-sandbox'] };
+}
+
+/** 이미 열린 page 에서 (선택적 axe 실행 후) 스냅샷을 직렬화한다. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function collectFromPage(page: any, opts: CollectOptions = {}): Promise<CollectResult> {
+  let axeViolations: AxeViolationLike[] = [];
+  if (opts.axeSource) {
+    await page.addScriptTag({ content: opts.axeSource });
+    const axeRes = await page.evaluate(`window.axe.run()`);
+    axeViolations = (axeRes?.violations ?? []) as AxeViolationLike[];
+  }
+  const snapshot = (await page.evaluate(SERIALIZER)) as DomSnapshot;
+  return { snapshot, axeViolations };
+}
+
 export async function collectFromUrl(url: string, opts: CollectOptions = {}): Promise<CollectResult> {
-  const specifier = 'playwright-core'; // 가변 지정자 → 빌드 시 정적 해석 회피
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pw: any = await import(specifier);
-  const browser = await pw.chromium.launch(
-    opts.executablePath ? { executablePath: opts.executablePath, args: ['--no-sandbox'] } : { args: ['--no-sandbox'] },
-  );
+  const pw = await loadPlaywright();
+  const browser = await pw.chromium.launch(launchArgs(opts));
   try {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: opts.timeoutMs ?? 30000 });
-
-    let axeViolations: AxeViolationLike[] = [];
-    if (opts.axeSource) {
-      await page.addScriptTag({ content: opts.axeSource });
-      const axeRes = await page.evaluate(`window.axe.run()`);
-      axeViolations = (axeRes?.violations ?? []) as AxeViolationLike[];
-    }
-
-    const snapshot = (await page.evaluate(SERIALIZER)) as DomSnapshot;
-    return { snapshot, axeViolations };
+    return await collectFromPage(page, opts);
   } finally {
     await browser.close();
   }

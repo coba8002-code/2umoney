@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ScanResult } from '@app/core';
 import { analyzeHtml } from './htmlAnalyze';
-import { analyzeUrl, analyzeImage, analyzeFigma } from './analysis/analyzers';
+import { analyzeUrl, analyzeSite, analyzeImage, analyzeFigma } from './analysis/analyzers';
 import { FindingsList, downloadJson } from './analysis/FindingsList';
 
 type Mode = 'html' | 'url' | 'image' | 'figma';
@@ -36,6 +36,9 @@ export function Analyzer() {
   const [figmaToken, setFigmaToken] = useState('');
   const [altEndpoint, setAltEndpoint] = useState('');
   const [altApiKey, setAltApiKey] = useState('');
+  const [serverBase, setServerBase] = useState('');
+  const [crawl, setCrawl] = useState(false);
+  const [maxPages, setMaxPages] = useState(5);
 
   function reset() {
     setResult(null);
@@ -102,13 +105,34 @@ export function Analyzer() {
               <>
                 <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com"
                   aria-label="분석할 URL" style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }} />
-                <button className="primary" disabled={busy || !url} onClick={() => run(() => analyzeUrl(url))}>
-                  {busy ? '가져오는 중…' : '가져와서 분석'}
+                <input value={serverBase} onChange={(e) => setServerBase(e.target.value)} placeholder="분석 서버(선택, 권장): https://host"
+                  aria-label="분석 서버 주소" style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }} />
+                <label style={{ fontSize: 12, color: '#555', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input type="checkbox" checked={crawl} disabled={!serverBase.trim()} onChange={(e) => setCrawl(e.target.checked)} />
+                  하위 링크(동일 출처) 크롤링 — 최대
+                  <input type="number" min={1} max={25} value={maxPages} disabled={!serverBase.trim() || !crawl}
+                    onChange={(e) => setMaxPages(Math.max(1, Math.min(25, Number(e.target.value) || 1)))}
+                    style={{ width: 56, padding: '2px 6px', borderRadius: 6, border: '1px solid #ddd' }} /> 페이지
+                </label>
+                <button className="primary" disabled={busy || !url}
+                  onClick={() =>
+                    run(() =>
+                      serverBase.trim()
+                        ? crawl
+                          ? analyzeSite(url, { serverBase, maxPages })
+                          : analyzeUrl(url) // 서버만 있고 크롤 미선택 시 단일 페이지(프록시)
+                        : analyzeUrl(url),
+                    )
+                  }>
+                  {busy ? '가져오는 중…' : crawl && serverBase.trim() ? '크롤링 분석' : '가져와서 분석'}
                 </button>
                 <p style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
-                  ⚠️ 공개 CORS 프록시로 <strong>정적 HTML</strong>만 가져옵니다. 외부 CSS·JavaScript 렌더 결과는
-                  반영되지 않아 일부 색/레이아웃 판정이 실제와 다를 수 있습니다. 정확한 분석은 서버측
-                  Playwright 수집(@app/api collect)을 사용하세요.
+                  · <strong>분석 서버 미입력</strong>: 공개 CORS 프록시로 <strong>한 페이지의 정적 HTML</strong>만
+                  가져옵니다(여러 프록시 자동 폴백). 외부 CSS·JS 렌더 결과는 반영되지 않아 일부 색/레이아웃 판정이
+                  실제와 다를 수 있고, 프록시 사정으로 실패할 수 있습니다.
+                  <br />· <strong>분석 서버 입력(권장)</strong>: 서버측 Playwright 가 실제 렌더링해 정확히 수집하며,
+                  <strong>크롤링</strong>을 켜면 동일 출처 하위 페이지까지 한 번에 분석합니다(외부·다른 출처 링크 제외).
+                  <br />서버는 <code>@app/api</code> 를 <code>pnpm --filter @app/api serve</code> 또는 Docker 로 띄우면 됩니다.
                 </p>
               </>
             )}

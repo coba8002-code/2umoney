@@ -43,13 +43,131 @@ class RemoteAltProvider implements LlmProvider {
   }
 }
 
+/**
+ * 공개 CORS 프록시 목록(순서대로 폴백). 단일 프록시 의존이 '가져오기 실패'의 주원인이라
+ * 여러 곳을 차례로 시도한다. {U}=인코딩된 URL. raw HTML 을 반환하는 프록시만 사용.
+ */
+export const DEFAULT_URL_PROXIES = [
+  'https://api.allorigins.win/raw?url={U}',
+  'https://corsproxy.io/?url={U}',
+  'https://thingproxy.freeboard.io/fetch/{RAW}',
+];
+
+export interface UrlFetchOptions {
+  /** 프록시 템플릿 목록(순서대로 폴백). 미지정 시 DEFAULT_URL_PROXIES */
+  proxies?: string[];
+  /** 테스트 주입용 fetch */
+  fetchImpl?: typeof fetch;
+}
+
+export function normalizeUrl(url: string): string {
+  return /^https?:\/\//.test(url) ? url : `https://${url}`;
+}
+
+/** 프록시들을 차례로 시도해 대상 URL 의 HTML 을 가져온다. 모두 실패하면 사유를 모아 throw. */
+export async function fetchViaProxy(url: string, opts: UrlFetchOptions = {}): Promise<string> {
+  const target = normalizeUrl(url);
+  const enc = encodeURIComponent(target);
+  const f = opts.fetchImpl ?? fetch;
+  const proxies = opts.proxies ?? DEFAULT_URL_PROXIES;
+  const errors: string[] = [];
+  for (const tpl of proxies) {
+    const proxyUrl = tpl.replace('{U}', enc).replace('{RAW}', target);
+    const host = (() => {
+      try {
+        return new URL(proxyUrl).host;
+      } catch {
+        return tpl;
+      }
+    })();
+    try {
+      const res = await f(proxyUrl);
+      if (!res.ok) {
+        errors.push(`${host}: HTTP ${res.status}`);
+        continue;
+      }
+      const html = await res.text();
+      if (!html || html.trim().length === 0) {
+        errors.push(`${host}: 빈 응답`);
+        continue;
+      }
+      return html;
+    } catch (e) {
+      // 네트워크/CORS 오류는 fetch 가 throw → 다음 프록시로
+      errors.push(`${host}: ${(e as Error).message || '네트워크 오류'}`);
+    }
+  }
+  throw new Error(
+    `URL 을 가져오지 못했습니다(${proxies.length}개 프록시 모두 실패). ` +
+      `공개 CORS 프록시는 불안정하거나 대상 사이트가 차단할 수 있습니다. ` +
+      `정확·안정적 분석은 서버측 수집(API 서버의 /v1/scan, /v1/crawl)을 사용하세요. ` +
+      `[상세: ${errors.join(' / ')}]`,
+  );
+}
+
 /** URL → 정적 HTML 가져와 분석 (CORS 프록시 경유; 외부 CSS/JS 미적용) */
-export async function analyzeUrl(url: string, proxy = 'https://api.allorigins.win/raw?url='): Promise<ScanResult> {
-  const target = /^https?:\/\//.test(url) ? url : `https://${url}`;
-  const res = await fetch(proxy + encodeURIComponent(target));
-  if (!res.ok) throw new Error(`가져오기 실패: HTTP ${res.status}`);
-  const html = await res.text();
+export async function analyzeUrl(url: string, opts: UrlFetchOptions = {}): Promise<ScanResult> {
+  const html = await fetchViaProxy(url, opts);
   return analyzeHtml(html);
+}
+
+export interface CrawlOptions {
+  /** 분석 서버 기준 주소(예: https://host) 또는 전체 엔드포인트(/v1/crawl 포함). */
+  serverBase: string;
+  maxPages?: number;
+  sameOrigin?: boolean;
+}
+
+type CrawlPageResult = { url: string; result: ScanResult };
+
+function shortPath(pageUrl: string): string {
+  try {
+    const u = new URL(pageUrl);
+    return u.pathname + u.search || '/';
+  } catch {
+    return pageUrl;
+  }
+}
+
+/**
+ * 서버측 크롤러(/v1/crawl)로 진입 URL 의 하위 페이지까지 수집·분석하고,
+ * 모든 페이지의 findings 를 한 ScanResult 로 합쳐 반환한다(각 항목명에 페이지 경로 표기).
+ * 브라우저 CORS·프록시 제약이 없어 가장 정확하다.
+ */
+export async function analyzeSite(url: string, opts: CrawlOptions): Promise<ScanResult> {
+  const base = opts.serverBase.trim().replace(/\/$/, '');
+  const endpoint = /\/v1\/crawl$/.test(base) ? base : `${base}/v1/crawl`;
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      url: normalizeUrl(url),
+      options: { maxPages: opts.maxPages ?? 5, sameOrigin: opts.sameOrigin ?? true },
+    }),
+  });
+  if (!res.ok) throw new Error(`크롤 서버 오류: HTTP ${res.status}`);
+  const json = (await res.json()) as { data?: { pages?: CrawlPageResult[] } };
+  const pages = json.data?.pages ?? [];
+  if (pages.length === 0) throw new Error('수집된 페이지가 없습니다. URL·서버 설정을 확인하세요.');
+
+  const findings = pages.flatMap((p) =>
+    p.result.findings.map((f) => ({ ...f, nodeName: `[${shortPath(p.url)}] ${f.nodeName ?? f.nodeId}` })),
+  );
+  const pass = findings.filter((f) => f.status === 'pass').length;
+  const fail = findings.filter((f) => f.status === 'fail').length;
+  const manual = findings.filter((f) => f.status === 'manual').length;
+  const auto = pass + fail;
+  return {
+    findings,
+    summary: {
+      pass,
+      fail,
+      manual,
+      total: findings.length,
+      estimatedPassRate: auto > 0 ? pass / auto : 1,
+      estimatedPassRateLabel: `자동판정 가능 항목 기준 (${pages.length}개 페이지)`,
+    },
+  };
 }
 
 export interface ImageAnalysis {
