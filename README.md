@@ -31,6 +31,18 @@ pnpm --filter @app/playground dev     # 웹 플레이그라운드
 pnpm --filter @app/figma-plugin build # Figma 플러그인 빌드(dist/)
 ```
 
+## 분석 API 서버 (CORS 제약 없는 URL·Figma 분석)
+
+```bash
+cd a11y-platform
+CHROMIUM_PATH=/path/to/chromium pnpm --filter @app/api serve   # http://localhost:3001
+# POST /v1/scan  { "source":"url",  "payload": { "url":"https://example.com" } }
+# POST /v1/scan  { "source":"html", "payload": { "snapshot": <DomSnapshot> } }
+# POST /v1/fix   { "scanResult": <ScanResult>, "acceptRuleIds": ["contrast.text"] }
+# POST /v1/report  <ScanResult>
+```
+URL 분석은 서버측 Playwright 가 실제 렌더링한 계산 스타일로 검사하므로 브라우저 CORS 제약이 없습니다.
+
 ## 배포
 
 - **Vercel**: 루트 `vercel.json` 이 `@app/playground` 를 빌드해 단일 HTML 정적 사이트로 배포합니다.

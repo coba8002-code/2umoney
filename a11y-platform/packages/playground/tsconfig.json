@@ -1,8 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "types": ["vitest/globals", "node"]
+    "jsx": "react-jsx",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "noEmit": true
   },
   "include": ["src"]
 }
