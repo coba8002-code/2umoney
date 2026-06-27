@@ -43,6 +43,19 @@ CHROMIUM_PATH=/path/to/chromium pnpm --filter @app/api serve   # http://localhos
 ```
 URL 분석은 서버측 Playwright 가 실제 렌더링한 계산 스타일로 검사하므로 브라우저 CORS 제약이 없습니다.
 
+### Docker 로 서버 배포
+
+Chromium 이 포함된 Playwright 베이스 이미지를 사용합니다.
+
+```bash
+docker compose up --build          # http://localhost:3001
+# 또는
+docker build -t a11y-api . && docker run -p 3001:3001 a11y-api
+```
+
+`render.yaml`(또는 동일한 `Dockerfile`)로 Render·Railway·Fly.io 등에 그대로 배포할 수 있습니다.
+정적 플레이그라운드는 Vercel/Pages 로, CORS-free 분석 서버는 이 컨테이너로 — 두 배포를 분리합니다.
+
 ## 배포
 
 - **Vercel**: 루트 `vercel.json` 이 `@app/playground` 를 빌드해 단일 HTML 정적 사이트로 배포합니다.

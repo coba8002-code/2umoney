@@ -8,7 +8,9 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "serve": "node esbuild-serve.mjs"
+    "serve": "node esbuild-serve.mjs",
+    "build": "node esbuild-build.mjs",
+    "start": "node dist/serve.mjs"
   },
   "dependencies": {
     "@app/core": "workspace:*",
