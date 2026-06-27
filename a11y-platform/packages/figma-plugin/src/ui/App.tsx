@@ -54,7 +54,13 @@ function FindingCard({
   return (
     <li className={`card ${ignored ? 'ignored' : ''}`} aria-label={`${f.nodeName ?? f.nodeId} 항목`}>
       <div className="card-head">
-        <Badge color={SEVERITY_COLOR[f.severity]}>{f.severity}</Badge>
+        {f.status === 'pass' ? (
+          <Badge color="#1b7f37">합격</Badge>
+        ) : f.status === 'manual' ? (
+          <Badge color="#6a4caf">수동확인</Badge>
+        ) : (
+          <Badge color={SEVERITY_COLOR[f.severity]}>{f.severity}</Badge>
+        )}
         <Badge color="#455a64">{SOURCE_LABEL[f.source]}</Badge>
         <span className="node-name">{f.nodeName ?? f.nodeId}</span>
       </div>
