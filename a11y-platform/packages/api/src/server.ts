@@ -7,6 +7,7 @@
  *   GET  /health
  */
 import Fastify, { type FastifyInstance } from 'fastify';
+import cors from '@fastify/cors';
 import { handleScan, handleFix, handleReport, type ScanRequest } from './routes';
 import { scanSnapshot } from './scanService';
 import { collectFromUrl } from './collect';
@@ -23,10 +24,15 @@ export interface ServerOptions {
    * 가 있으면 멀티모달 Claude, 없으면 결정론 폴백을 사용한다.
    */
   altProvider?: LlmProvider;
+  /** CORS 허용 오리진. 기본 true(요청 오리진 반영) — 브라우저 플레이그라운드에서 호출 가능. */
+  corsOrigin?: boolean | string | string[];
 }
 
 export function buildServer(opts: ServerOptions = {}): FastifyInstance {
   const app = Fastify({ logger: true });
+
+  // 브라우저(다른 오리진의 플레이그라운드)에서 직접 호출할 수 있도록 CORS 허용
+  app.register(cors, { origin: opts.corsOrigin ?? true });
 
   app.get('/health', async () => ({ ok: true }));
 
