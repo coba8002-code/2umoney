@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fetchViaProxy, analyzeSite, normalizeUrl, DEFAULT_URL_PROXIES } from './analyzers';
+import { fetchViaProxy, analyzeSite, analyzeUnity, normalizeUrl, DEFAULT_URL_PROXIES } from './analyzers';
 
 function okText(text: string): Response {
   return { ok: true, status: 200, text: async () => text } as unknown as Response;
@@ -94,5 +94,27 @@ describe('크롤 결과 병합 — analyzeSite', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe('Unity export 분석 — analyzeUnity', () => {
+  it('export JSON 을 파싱해 결정론 룰셋으로 검사', () => {
+    const json = JSON.stringify({
+      screenBg: '#ffffff',
+      root: {
+        id: 'c', kind: 'Canvas', backgroundColor: '#ffffff',
+        children: [
+          { id: 't', kind: 'TMP_Text', text: '안내', color: '#aaaaaa', fontSizePx: 18 },
+          { id: 'b', kind: 'Button', backgroundColor: '#1976d2', rect: { width: 24, height: 24 } },
+        ],
+      },
+    });
+    const { findings } = analyzeUnity(json);
+    expect(findings.find((f) => f.ruleId === 'contrast.text' && f.nodeId === 't')?.status).toBe('fail');
+    expect(findings.find((f) => f.ruleId === 'target.size' && f.nodeId === 'b')?.status).toBe('fail');
+  });
+
+  it('잘못된 JSON 은 친절한 에러', () => {
+    expect(() => analyzeUnity('{not json')).toThrow(/JSON 형식/);
   });
 });

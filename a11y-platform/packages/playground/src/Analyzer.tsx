@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import type { ScanResult } from '@app/core';
 import { analyzeHtml } from './htmlAnalyze';
-import { analyzeUrl, analyzeSite, analyzeImage, analyzeFigma } from './analysis/analyzers';
+import { analyzeUrl, analyzeSite, analyzeImage, analyzeFigma, analyzeUnity } from './analysis/analyzers';
 import { FindingsList, downloadJson } from './analysis/FindingsList';
 
-type Mode = 'html' | 'url' | 'image' | 'figma';
+type Mode = 'html' | 'url' | 'image' | 'figma' | 'unity';
 
 const SAMPLE_HTML = `<main style="background:#fff;padding:16px">
   <h1 style="color:#222;font-size:28px">상품 안내</h1>
@@ -20,7 +20,22 @@ const MODES: { key: Mode; label: string }[] = [
   { key: 'url', label: 'URL' },
   { key: 'image', label: '이미지' },
   { key: 'figma', label: 'Figma' },
+  { key: 'unity', label: 'Unity' },
 ];
+
+const SAMPLE_UNITY = `{
+  "screenBg": "#ffffff",
+  "root": {
+    "id": "canvas", "kind": "Canvas", "backgroundColor": "#ffffff",
+    "children": [
+      { "id": "title", "kind": "TMP_Text", "text": "주문하기", "color": "#aaaaaa", "fontSizePx": 18 },
+      { "id": "pay", "kind": "Button", "backgroundColor": "#1976d2",
+        "rect": { "width": 30, "height": 28 },
+        "children": [{ "id": "lbl", "kind": "Text", "text": "결제", "color": "#ffffff", "fontSizePx": 16 }] },
+      { "id": "logo", "kind": "Image", "rect": { "width": 120, "height": 40 } }
+    ]
+  }
+}`;
 
 export function Analyzer() {
   const [mode, setMode] = useState<Mode>('html');
@@ -39,6 +54,7 @@ export function Analyzer() {
   const [serverBase, setServerBase] = useState('');
   const [crawl, setCrawl] = useState(false);
   const [maxPages, setMaxPages] = useState(5);
+  const [unityJson, setUnityJson] = useState(SAMPLE_UNITY);
 
   function reset() {
     setResult(null);
@@ -171,6 +187,23 @@ export function Analyzer() {
                 <p style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
                   Figma REST API 로 파일을 불러와 분석합니다. 토큰은 브라우저에서만 사용되고 전송·저장되지 않습니다.
                   (Settings → Account → Personal access tokens 에서 발급)
+                </p>
+              </>
+            )}
+
+            {mode === 'unity' && (
+              <>
+                <textarea value={unityJson} onChange={(e) => setUnityJson(e.target.value)} spellCheck={false} aria-label="Unity export JSON"
+                  style={{ flex: 1, minHeight: 260, fontFamily: 'monospace', fontSize: 12, padding: 10, borderRadius: 8, border: '1px solid #ddd' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="primary" disabled={busy} onClick={() => run(() => analyzeUnity(unityJson))}>분석</button>
+                  <button className="ghost" onClick={() => setUnityJson(SAMPLE_UNITY)}>샘플</button>
+                </div>
+                <p style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+                  Unity 키오스크는 화면을 픽셀로 그려 구조 정보가 없으므로, Unity 측에서 UI 계층을
+                  <code>{' { root|nodes, screenBg } '}</code> JSON 으로 export 해 붙여넣습니다. 각 노드의
+                  <strong> 실제 좌표·색·폰트</strong>로 명도대비·터치 타깃 크기·대체텍스트를 정확히 검사합니다.
+                  (export 가 어려우면 <strong>이미지</strong> 탭의 비전 LLM 으로 화면 캡처를 분석하세요.)
                 </p>
               </>
             )}

@@ -113,3 +113,4 @@ cd a11y-platform && pnpm --filter @app/api serve   # http://localhost:3001
 
 - [사용 설명서](./a11y-platform/docs/USER_GUIDE.md) — 기능·화면·활용 시나리오
 - [기능 고도화 로드맵](./a11y-platform/docs/ROADMAP_FUNCTIONAL.md)
+- [Unity 키오스크 접근성 가이드](./a11y-platform/docs/UNITY_KIOSK.md) — export JSON 분석 + 비전 폴백 + 수동 점검 항목

@@ -1,6 +1,6 @@
 /** 브라우저용 분석 함수들: URL · 이미지 · Figma (HTML 은 ../htmlAnalyze) */
 import { scanNodes, type ScanResult, type A11yNode } from '@app/core';
-import { figmaFileToA11yNodes, parseFigmaFileKey } from '@app/api';
+import { figmaFileToA11yNodes, parseFigmaFileKey, unityExportToA11yNodes, type UnityExport } from '@app/api';
 import {
   HeuristicAltProvider,
   ClaudeAltProvider,
@@ -240,5 +240,22 @@ export async function analyzeFigma(fileUrl: string, token: string): Promise<Scan
   }
   const json = (await res.json()) as { document: import('@app/api').FigmaRestNode };
   const nodes = figmaFileToA11yNodes(json.document);
+  return scanNodes(nodes);
+}
+
+/**
+ * Unity 키오스크 export JSON(문자열) → 분석.
+ * Unity 측에서 UI 계층을 {root|nodes, screenBg} 형태로 export 하면, 실제 컴포넌트 값
+ * (좌표·색·폰트)으로 HTML/Figma 와 동일한 결정론 룰셋을 정확히 적용한다.
+ */
+export function analyzeUnity(jsonText: string): ScanResult {
+  let parsed: UnityExport;
+  try {
+    parsed = JSON.parse(jsonText) as UnityExport;
+  } catch {
+    throw new Error('JSON 형식이 올바르지 않습니다. Unity export 결과를 붙여넣으세요.');
+  }
+  const nodes = unityExportToA11yNodes(parsed);
+  if (nodes.length === 0) throw new Error('분석할 UI 노드가 없습니다. root 또는 nodes 를 확인하세요.');
   return scanNodes(nodes);
 }
