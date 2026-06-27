@@ -3,6 +3,7 @@ import { scanNodes, type ScanResult, type A11yNode } from '@app/core';
 import { figmaFileToA11yNodes, parseFigmaFileKey } from '@app/api';
 import {
   HeuristicAltProvider,
+  ClaudeAltProvider,
   enrichAltSuggestions,
   type LlmProvider,
   type ImageContext,
@@ -61,9 +62,23 @@ export interface ImageAnalysis {
 export interface ImageAnalyzeOptions {
   /**
    * C2: API 서버의 /v1/alt 엔드포인트. 지정 시 이미지 내용을 실제로 보고(비전 LLM)
-   * 대체텍스트를 생성한다. 미지정 시 네트워크 없는 휴리스틱 초안만 제안.
+   * 대체텍스트를 생성한다(서버가 키 보관 — 권장).
    */
   altEndpoint?: string;
+  /**
+   * 서버 없이 브라우저에서 바로 비전 LLM 을 쓰기 위한 Anthropic API 키.
+   * altEndpoint 가 없을 때만 사용. 키는 브라우저에서만 쓰이고 어디에도 저장/전송되지 않는다.
+   */
+  apiKey?: string;
+}
+
+/** 우선순위: 서버 엔드포인트 > 브라우저 직접 키 > 휴리스틱(네트워크 없음) */
+function pickAltProvider(opts: ImageAnalyzeOptions): { provider: LlmProvider; usesVision: boolean } {
+  const endpoint = opts.altEndpoint?.trim();
+  if (endpoint) return { provider: new RemoteAltProvider(endpoint), usesVision: true };
+  const key = opts.apiKey?.trim();
+  if (key) return { provider: new ClaudeAltProvider({ apiKey: key, dangerouslyAllowBrowser: true }), usesVision: true };
+  return { provider: new HeuristicAltProvider(), usesVision: false };
 }
 
 /** 이미지 파일 → alt 필요 검출 + alt 제안(휴리스틱 또는 비전 LLM) + 메타데이터 */
@@ -86,10 +101,9 @@ export async function analyzeImage(file: File, opts: ImageAnalyzeOptions = {}): 
   };
   const base = scanNodes([node]);
 
-  const endpoint = opts.altEndpoint?.trim();
-  const provider: LlmProvider = endpoint ? new RemoteAltProvider(endpoint) : new HeuristicAltProvider();
-  // 비전 LLM 사용 시에만 이미지 데이터를 전송(서버가 실제 내용을 보도록)
-  const context: ImageContext = endpoint
+  const { provider, usesVision } = pickAltProvider(opts);
+  // 비전 LLM 사용 시에만 이미지 데이터를 함께 전달(실제 내용을 보도록)
+  const context: ImageContext = usesVision
     ? { nodeId: 'img', name: file.name, dataUrl: await fileToDataUrl(file) }
     : { nodeId: 'img', name: file.name };
   const findings = await enrichAltSuggestions(base.findings, provider, { contexts: { img: context } });

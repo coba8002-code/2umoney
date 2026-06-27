@@ -17,6 +17,11 @@ export interface ClaudeProviderOptions {
   model?: string;
   /** 테스트용 주입 (지정 시 apiKey 무시) */
   client?: Pick<Anthropic, 'messages'>;
+  /**
+   * 브라우저에서 직접 호출 허용. 키가 클라이언트에 노출되므로 서버 보관이 원칙이나,
+   * 사용자가 자기 키를 화면에 입력해 즉석에서 시험하는 용도로만 true 로 둔다.
+   */
+  dangerouslyAllowBrowser?: boolean;
 }
 
 const ALT_SYSTEM =
@@ -61,7 +66,12 @@ export class ClaudeAltProvider implements LlmProvider {
   private readonly model: string;
 
   constructor(opts: ClaudeProviderOptions = {}) {
-    this.client = opts.client ?? new Anthropic(opts.apiKey ? { apiKey: opts.apiKey } : {});
+    this.client =
+      opts.client ??
+      new Anthropic({
+        ...(opts.apiKey ? { apiKey: opts.apiKey } : {}),
+        ...(opts.dangerouslyAllowBrowser ? { dangerouslyAllowBrowser: true } : {}),
+      });
     this.model = opts.model ?? 'claude-opus-4-8';
   }
 

@@ -35,6 +35,7 @@ export function Analyzer() {
   const [figmaUrl, setFigmaUrl] = useState('');
   const [figmaToken, setFigmaToken] = useState('');
   const [altEndpoint, setAltEndpoint] = useState('');
+  const [altApiKey, setAltApiKey] = useState('');
 
   function reset() {
     setResult(null);
@@ -60,7 +61,7 @@ export function Analyzer() {
     setBusy(true);
     setError('');
     try {
-      const a = await analyzeImage(file, { altEndpoint });
+      const a = await analyzeImage(file, { altEndpoint, apiKey: altApiKey });
       setImgPreview(a.previewUrl);
       setResult(a.result);
     } catch (e) {
@@ -116,13 +117,20 @@ export function Analyzer() {
               <>
                 <input type="file" accept="image/*" aria-label="이미지 업로드" onChange={(e) => onImage(e.target.files?.[0])} />
                 {imgPreview && <img src={imgPreview} alt="업로드 미리보기" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 8, border: '1px solid #eee' }} />}
-                <input value={altEndpoint} onChange={(e) => setAltEndpoint(e.target.value)} placeholder="비전 LLM 서버(선택): https://host/v1/alt"
+                <input value={altEndpoint} onChange={(e) => setAltEndpoint(e.target.value)} placeholder="① 비전 LLM 서버(권장): https://host/v1/alt"
                   aria-label="대체텍스트 비전 LLM 서버 주소" style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }} />
+                <input value={altApiKey} onChange={(e) => setAltApiKey(e.target.value)} type="password" placeholder="② Anthropic API 키(서버 없이 바로 시험)"
+                  autoComplete="off" aria-label="Anthropic API 키" disabled={!!altEndpoint.trim()}
+                  style={{ padding: 10, borderRadius: 8, border: '1px solid #ddd', fontSize: 13, opacity: altEndpoint.trim() ? 0.5 : 1 }} />
                 <p style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
                   이미지의 <strong>대체텍스트 필요 여부</strong>를 검출하고 alt 초안을 제안합니다.
-                  서버 주소를 입력하면 이미지 <strong>내용</strong>을 보고 alt 를 생성하는 <strong>비전 LLM(C2)</strong>으로,
-                  비워 두면 네트워크 없이 동작하는 휴리스틱 초안으로 처리합니다. API 키는 서버가 보관해 브라우저엔
-                  노출되지 않으며, 모든 AI 제안은 <strong>ai-assisted</strong> 로 표시되고 사람 수락 후 적용됩니다.
+                  비전 LLM(C2)으로 이미지 <strong>내용</strong>을 보고 alt 를 생성하려면 둘 중 하나를 입력하세요:
+                  <br />· <strong>①서버 주소</strong> — API 키를 서버가 보관(권장, 키 비노출).
+                  <br />· <strong>②API 키</strong> — 서버 없이 브라우저에서 Anthropic 으로 직접 호출. 키는
+                  <strong> 브라우저에서만</strong> 쓰이고 어디에도 저장·전송되지 않지만, 클라이언트에 노출되므로
+                  본인 키로 잠깐 시험할 때만 쓰세요.
+                  <br />둘 다 비우면 네트워크 없는 휴리스틱 초안. 모든 AI 제안은 <strong>ai-assisted</strong> 로
+                  표시되고 사람 수락 후 적용됩니다.
                 </p>
               </>
             )}
