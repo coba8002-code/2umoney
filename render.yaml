@@ -1,0 +1,11 @@
+# Render.com 배포 예시 (Docker). Railway/Fly.io 등도 Dockerfile 로 동일하게 배포 가능.
+services:
+  - type: web
+    name: a11y-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard # Chromium 구동을 위해 메모리 여유가 있는 플랜 권장
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "3001"
