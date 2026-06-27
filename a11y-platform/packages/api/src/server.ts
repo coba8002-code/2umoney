@@ -7,9 +7,11 @@
  *   GET  /health
  */
 import Fastify, { type FastifyInstance } from 'fastify';
+import cors from '@fastify/cors';
 import { handleScan, handleFix, handleReport, type ScanRequest } from './routes';
 import { scanSnapshot } from './scanService';
 import { collectFromUrl } from './collect';
+import { createAltProvider, type ImageContext, type LlmProvider } from '@app/ai';
 import type { ScanResult } from '@app/core';
 
 export interface ServerOptions {
@@ -17,10 +19,20 @@ export interface ServerOptions {
   chromiumPath?: string;
   /** axe-core 소스(주입 시 url 수집에서 axe 실행) */
   axeSource?: string;
+  /**
+   * AI 대체텍스트 프로바이더 (테스트 주입용). 미지정 시 ANTHROPIC_API_KEY
+   * 가 있으면 멀티모달 Claude, 없으면 결정론 폴백을 사용한다.
+   */
+  altProvider?: LlmProvider;
+  /** CORS 허용 오리진. 기본 true(요청 오리진 반영) — 브라우저 플레이그라운드에서 호출 가능. */
+  corsOrigin?: boolean | string | string[];
 }
 
 export function buildServer(opts: ServerOptions = {}): FastifyInstance {
   const app = Fastify({ logger: true });
+
+  // 브라우저(다른 오리진의 플레이그라운드)에서 직접 호출할 수 있도록 CORS 허용
+  app.register(cors, { origin: opts.corsOrigin ?? true });
 
   app.get('/health', async () => ({ ok: true }));
 
@@ -49,6 +61,18 @@ export function buildServer(opts: ServerOptions = {}): FastifyInstance {
   app.post('/v1/report', async (req, reply) => {
     const res = handleReport(req.body as ScanResult);
     return reply.code(res.status).send(res);
+  });
+
+  // 멀티모달 대체텍스트 제안(C2). API 키는 서버가 보관하고 클라이언트엔 노출하지 않는다.
+  // 결과는 항상 'ai-assisted' — 사람이 수락 후 적용하는 것이 전제(스펙 §5).
+  const altProvider = opts.altProvider ?? createAltProvider();
+  app.post('/v1/alt', async (req, reply) => {
+    const body = req.body as ImageContext | undefined;
+    if (!body || typeof body.nodeId !== 'string') {
+      return reply.code(400).send({ ok: false, status: 400, error: 'nodeId 가 필요합니다.' });
+    }
+    const suggestion = await altProvider.suggestAltText(body);
+    return reply.send({ ok: true, status: 200, source: 'ai-assisted', data: suggestion });
   });
 
   return app;

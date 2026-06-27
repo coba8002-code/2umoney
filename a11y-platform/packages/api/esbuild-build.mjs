@@ -10,7 +10,7 @@ await esbuild.build({
   platform: 'node',
   format: 'esm',
   outfile: resolve('dist/serve.mjs'),
-  external: ['fastify', 'playwright-core'],
+  external: ['fastify', 'playwright-core', '@anthropic-ai/sdk'],
   loader: { '.json': 'json' },
   minify: true,
 });

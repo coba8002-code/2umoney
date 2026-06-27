@@ -13,7 +13,7 @@ await esbuild.build({
   platform: 'node',
   format: 'esm',
   outfile,
-  external: ['fastify', 'playwright-core'], // node_modules 런타임 해석
+  external: ['fastify', 'playwright-core', '@anthropic-ai/sdk'], // node_modules 런타임 해석
   loader: { '.json': 'json' },
 });
 
