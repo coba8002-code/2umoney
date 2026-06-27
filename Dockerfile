@@ -14,6 +14,7 @@ RUN pnpm --filter @app/api build
 
 ENV PORT=3001
 # CHROMIUM_PATH 미설정 → playwright-core 가 베이스 이미지의 Chromium 자동 사용
+# ANTHROPIC_API_KEY 설정 시 /v1/alt 가 멀티모달 Claude 로 대체텍스트 생성(미설정 시 결정론 폴백)
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD node -e "fetch('http://localhost:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"

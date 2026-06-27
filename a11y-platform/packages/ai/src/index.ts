@@ -7,4 +7,9 @@ export type {
   Rule,
 } from './provider';
 export { HeuristicAltProvider } from './heuristicProvider';
+export {
+  ClaudeAltProvider,
+  createAltProvider,
+  type ClaudeProviderOptions,
+} from './claudeProvider';
 export { enrichAltSuggestions, type EnrichOptions } from './enrich';

@@ -40,8 +40,24 @@ CHROMIUM_PATH=/path/to/chromium pnpm --filter @app/api serve   # http://localhos
 # POST /v1/scan  { "source":"html", "payload": { "snapshot": <DomSnapshot> } }
 # POST /v1/fix   { "scanResult": <ScanResult>, "acceptRuleIds": ["contrast.text"] }
 # POST /v1/report  <ScanResult>
+# POST /v1/alt   { "nodeId":"hero", "name":"photo", "surroundingText":"...", "dataUrl":"data:image/png;base64,..." }
 ```
 URL 분석은 서버측 Playwright 가 실제 렌더링한 계산 스타일로 검사하므로 브라우저 CORS 제약이 없습니다.
+
+### 멀티모달 대체텍스트 (C2)
+
+`POST /v1/alt` 는 이미지 내용을 실제로 보고(`dataUrl`) 대체텍스트 초안을 제안합니다.
+서버에 `ANTHROPIC_API_KEY` 가 설정돼 있으면 멀티모달 Claude(`claude-opus-4-8`)를,
+없으면 네트워크 없이 동작하는 결정론 폴백(레이어명·주변 텍스트 기반)을 사용합니다.
+API 키는 서버만 보관하고 클라이언트에 노출하지 않습니다.
+
+```bash
+ANTHROPIC_API_KEY=sk-... pnpm --filter @app/api serve
+```
+
+> AI 결과는 항상 `ai-assisted` 로 라벨링되고 신뢰도(confidence)가 함께 제공됩니다.
+> 색·크기 보정은 결정론 코드가, **텍스트·판단 보조만 AI** 가 담당합니다 — 이 경계가 신뢰의 핵심입니다.
+> 모든 AI 제안은 사람이 항목별로 수락한 뒤에만 적용됩니다(자동 적용 금지).
 
 ### Docker 로 서버 배포
 
