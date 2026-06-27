@@ -83,6 +83,26 @@ docker build -t a11y-api . && docker run -p 3001:3001 a11y-api
 `render.yaml`(또는 동일한 `Dockerfile`)로 Render·Railway·Fly.io 등에 그대로 배포할 수 있습니다.
 정적 플레이그라운드는 Vercel/Pages 로, CORS-free 분석 서버는 이 컨테이너로 — 두 배포를 분리합니다.
 
+#### 원클릭 배포 (Render)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/coba8002-code/2umoney)
+
+위 버튼 → 저장소 연결 → `render.yaml` 자동 인식 → **Apply**. 배포 후 받은 주소
+(예: `https://a11y-api.onrender.com`)를 플레이그라운드 **URL 탭의 "분석 서버"** 칸에 넣으면
+크롤링이 동작합니다. 이미지 비전 LLM 까지 쓰려면 Render 대시보드 **Environment** 에
+`ANTHROPIC_API_KEY` 를 추가하세요(코드엔 저장되지 않음).
+
+#### 클라우드 없이 — 로컬 서버 + 배포된 플레이그라운드
+
+분석 서버를 **내 PC 에서만** 띄우고, 이미 배포된 웹 플레이그라운드로 크롤링을 바로 체험할 수 있습니다.
+브라우저는 `https` 페이지에서도 `http://localhost` 호출을 허용합니다(localhost 는 신뢰 컨텍스트).
+
+```bash
+cd a11y-platform && pnpm --filter @app/api serve   # http://localhost:3001
+```
+→ 플레이그라운드 URL 탭의 "분석 서버" 칸에 `http://localhost:3001` 입력 → "하위 링크 크롤링" 체크 → 분석.
+(드물게 브라우저가 mixed-content 로 막으면 `pnpm --filter @app/playground dev` 로 플레이그라운드도 로컬 실행)
+
 ## 배포
 
 - **Vercel**: 루트 `vercel.json` 이 `@app/playground` 를 빌드해 단일 HTML 정적 사이트로 배포합니다.

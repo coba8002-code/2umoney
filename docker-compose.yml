@@ -7,4 +7,7 @@ services:
       - "3001:3001"
     environment:
       - PORT=3001
+      # 호스트의 ANTHROPIC_API_KEY 를 전달(없으면 빈 값 → /v1/alt 결정론 폴백).
+      # 사용: ANTHROPIC_API_KEY=sk-... docker compose up --build
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     restart: unless-stopped

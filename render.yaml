@@ -9,3 +9,7 @@ services:
     envVars:
       - key: PORT
         value: "3001"
+      # 이미지 비전 LLM(/v1/alt)을 서버에서 쓰려면 Render 대시보드에서 값 입력(코드엔 저장 안 함).
+      # 미설정 시 /v1/alt 는 네트워크 없는 결정론 폴백으로 동작한다.
+      - key: ANTHROPIC_API_KEY
+        sync: false
