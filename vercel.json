@@ -1,5 +1,7 @@
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "framework": "nextjs"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "corepack enable && corepack prepare pnpm@10.33.0 --activate && pnpm -C a11y-platform install --frozen-lockfile",
+  "buildCommand": "pnpm -C a11y-platform --filter @app/playground build",
+  "outputDirectory": "a11y-platform/packages/playground/dist"
 }

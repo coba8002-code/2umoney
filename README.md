@@ -1,160 +1,43 @@
-# 2umoney - Advanced FX Trading Decision Engine
+# 베리어프리 접근성 검증·자동보정 플랫폼
 
-A personal, institutional-grade foreign exchange (FX) quantitative dashboard built with Next.js, TypeScript, and Prisma. It leverages multi-dimensional scoring algorithms, historical pattern matching, natural language processing (NLP) for news sentiment, and market regime detection to generate highly optimized, progressive sizing execution plans for **Toss Bank's Auto-Exchange (토스 자동환전)** feature.
+디자인·화면의 접근성(KWCAG 2.2 / WCAG 2.2 AA)을 자동으로 검사하고, 브랜드 톤을
+해치지 않는 선에서 색·크기를 자동 보정하는 플랫폼입니다.
 
+- 색·크기 보정은 **결정론적 알고리즘**(색상·채도 유지, 명도만 조정) — 디자인 훼손 없음
+- 대체텍스트·문맥 판단은 **AI 보조** — 사람이 최종 검토·수락
+- "100% 보장" 같은 단정 표현을 쓰지 않고, 자동 판정이 전체의 일부임을 항상 명시
 
+> 코드는 모두 [`a11y-platform/`](./a11y-platform) 모노레포에 있습니다.
 
-## 📌 1. Project Overview
+## 패키지
 
-**2umoney** is designed to eliminate emotional and discretionary bias from daily FX trading across 17 different currency pairs. Instead of fully automated API trading (which is legally restricted or technically complex for retail FX accounts in Korea), this project embraces a **"Human-in-the-loop Auto-Execution"** bridge. 
+| 패키지 | 내용 |
+|---|---|
+| `packages/core` | 플랫폼 독립 룰셋·색대비·보정 알고리즘 (100% TS) |
+| `packages/rules-data` | KWCAG/WCAG 매핑·임계값 (단일 소스) |
+| `packages/figma-plugin` | Figma 진단·보정 플러그인 (Phase 1) |
+| `packages/playground` | 브라우저 단독 웹 데모 (배포 대상) |
+| `packages/ai` | AI 대체텍스트 계층 — 프로바이더 추상화 + 결정론 폴백 |
+| `packages/api` | HTML/URL 검사 파이프라인 + REST 핸들러 (Phase 2) |
 
-The analytical engine processes vast amounts of data overnight, computes absolute probabilities, and spits out clear, copy-pasteable Limit Orders (목표가/금액). The user simply inputs these into the Toss App's Auto-Exchange settings every morning.
+## 빠른 시작
 
-### The "Why Semi-Automated?" Approach
-Banks like Toss do not offer open public trading APIs for retail FX. However, Toss *does* offer a powerful "Auto-Exchange (자동환전)" feature that allows users to pre-set desired exchange rates and target amounts. **2umoney acts as the "Brain"**, calculating exactly *what* those rates and amounts should be based on complex quant logic, while Toss acts as the "Hands" executing the trades slippage-free at zero spread.
-
----
-
-## 🚀 2. Getting Started (Installation)
-
-### Prerequisites
-- Node.js (v18+)
-- PostgreSQL (Local or Cloud)
-- Python 3.10+ (For future ML/Data-pipeline extensions)
-
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/2umoney.git
-   cd 2umoney
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up the Database:
-   - Create a `.env` file and set your `DATABASE_URL` (e.g., `postgresql://user:password@localhost:5432/2umoney`).
-   - Run Prisma migrations and seed the mock data:
-   ```bash
-   npx prisma migrate dev --name init
-   npm run seed:dummy
-   ```
-4. Start the Development Server:
-   ```bash
-   npm run dev
-   ```
-   *Dashboard runs on `http://localhost:3000`*
-
----
-
-## 📁 3. Folder Structure Architecture
-
-```text
-2umoney/
-├── prisma/
-│   ├── schema.prisma      # DB Models (Currencies, Rates, Logs, Settings)
-│   ├── seedDummy.ts       # Mock time-series data generator
-│   └── seed.ts            # Base strategy group constants
-├── src/
-│   ├── app/               # Next.js App Router (UI Layer)
-│   │   ├── api/           # Backend API Endpoints (Data & Trigger bridges)
-│   │   ├── backtest/      # Simulation & Performance Reports
-│   │   ├── currency/      # Multi-timeframe Charting & Depth analysis
-│   │   ├── portfolio/     # PnL & Group Exposure Constraints Tracker
-│   │   ├── settings/      # Risk %, Exposure limits, System overrides
-│   │   ├── toss/          # UI optimized for Toss App copying
-│   │   ├── trades/        # Manual trade logger & auto-averager
-│   │   └── page.tsx       # Main Dashboard (Summary, Top Picks)
-│   ├── engine/            # The Brains (TypeScript Core Logic)
-│   │   ├── scoring.ts     # The 100-point aggregation logic
-│   │   ├── actionEngine.ts# Maps scores to actionable states (BUY_ADD, HOLD)
-│   │   ├── positionEngine.ts # Capital sizing (40/30/30 split logic)
-│   │   ├── patternEngine.ts  # Cosine similarity vector matching
-│   │   ├── regimeEngine.ts   # Macro environment context mapping
-│   │   └── newsEngine.ts     # GDELT/NLP Sentiment modifier mock
-│   ├── components/        # Reusable UI (Recharts, Tables, Cards)
-│   └── lib/               # Utility functions (cn, date formatters)
-└── package.json
+```bash
+cd a11y-platform
+pnpm install
+pnpm --filter @app/core test          # 룰셋·보정 단위 테스트
+pnpm --filter @app/core demo          # 콘솔 데모 (진단·보정·리포트)
+pnpm --filter @app/playground dev     # 웹 플레이그라운드
+pnpm --filter @app/figma-plugin build # Figma 플러그인 빌드(dist/)
 ```
 
----
+## 배포
 
-## ⚙️ 4. Data Flow & Execution Pipeline
+- **Vercel**: 루트 `vercel.json` 이 `@app/playground` 를 빌드해 단일 HTML 정적 사이트로 배포합니다.
+- **GitHub Pages**: `.github/workflows/pages.yml` 이 같은 플레이그라운드를 Pages 로 배포합니다.
+  (Settings → Pages → Source: GitHub Actions 활성화 필요)
 
-1. **Nightly Ingestion (Future Cron):** Python microservices fetch OHLCV from Yahoo Finance, News from GDELT, and Macro Events from Economic Calendars.
-2. **Analysis Trigger:** `POST /api/*/run` endpoints trigger the internal `engine/*.ts` modules.
-3. **Regime & Pattern Matching:** The current market context is classified (e.g., `USD_STRONG`), and similar historical patterns are vectorized to calculate mathematical Expectancy.
-4. **Scoring Aggregation:** `scoring.ts` aggregates 6 disparate models into a single `finalScore` (0-100).
-5. **Action & Sizing Mapping:** The engine determines the optimal move (`BUY_1`, `SELL_SPLIT`, etc.) and strictly limits position sizes against total equity and strategy group rules.
-6. **Frontend Display:** User opens Next.js UI, views the `Toss Execution Plans`, and manually enters the 3-phase limit orders into the Toss App.
-7. **Execution Logging:** When Toss executes a plan, the user logs it in `/trades`. The internal Portfolio Engine automatically recalculates average cost basis and active holding phases.
+## 문서
 
----
-
-## 🧮 5. Algorithm Breakdown
-
-### A. The 100-Point Scoring System (`scoring.ts`)
-The core verdict on any currency pair is an aggregated weighted score based on six pillars:
-* **Structure (20):** Trend alignment across Multi-timeframes (Weekly vs Daily).
-* **Pattern (20):** Statistical profitability and MDD of historically matching vectors.
-* **Timing (15):** Mean-reverting oscillators (RSI, Z-Score, Bollinger Band distance).
-* **News/Event Risk (10):** Sentiment polarity and policy uncertainty scores.
-* **Regime Fit (20):** How well this currency performs in the prevailing global macro condition.
-* **Expected Value (15):** The purely mathematical `(WinRate * AvgWin) - (LossRate * AvgLoss)`.
-
-### B. Regime Engine (`regimeEngine.ts`)
-Different currencies act differently in varying environments.
-- Identifies environments like `RISK_OFF`, `USD_STRONG`, or `CHINA_SENSITIVE`.
-- Applies a `regimeFitScore`. E.g., Safe-haven currencies (Group A: USD, CHF) get score boosts during `RISK_OFF` periods, while Emerging Markets (Group D: THB, MYR) face severe penalties.
-
-### C. Pattern Similarity (`patternEngine.ts`)
-- Converts recent price action (e.g., last 14 days of returns + volatility) into an N-dimensional `PatternFeatureVector`.
-- Uses Cosine Similarity against historical DB records.
-- Extracts the Top *K* most similar periods in history and models the aggregated forward return probabilities (WinRate, Average Return 5d/10d).
-
-### D. Expected Value (EV) & Betting Grade
-Rather than relying on vague indicators, positions are sized dynamically using Kelly Criterion-inspired mathematics:
-```text
-Expectancy = (WinRate * AvgWin) - (LossRate * AvgLoss)
-If EV < 0 AND Penalty applies -> System forces a 'WAIT' or 'WATCH' state.
-```
-
-### E. Toss Auto-Exchange Execution Sizing (`positionEngine.ts`)
-Position weights are mathematically anchored to stop-loss depth and account equity to ensure equalized risk:
-1. `RiskCapital = TotalEquity * 0.7% (Default Risk)`
-2. `Recommended Krw = RiskCapital / StopLossDistance(%)`
-3. Engine dynamically slashes the recommended amount if Macro Risk is high or the currency sits in a highly volatile Strategy Group (D).
-
-**The 40-30-30 Progressive Rule:**
-Never buy all at once. The engine splits the recommendation into 3 limit orders:
-- **Phase 1 (40% Weight):** Entering slightly below current price (-0.2%).
-- **Phase 2 (30% Weight):** Buying the dip (-1.0%).
-- **Phase 3 (30% Weight):** Final defense line right above Stop Loss (-1.8%).
-
----
-
-## ☁️ 6. Cloud Deployment (Vercel)
-
-### Frontend Dashboard (Next.js)
-1. Commit all your code and push it to your GitHub repository.
-2. Go to [Vercel](https://vercel.com/new) and import your GitHub repository.
-3. Before clicking "Deploy", add the following **Environment Variables**:
-   - `DATABASE_URL`: Your cloud PostgreSQL connection string (e.g. Supabase, Neon).
-4. Click **Deploy**. Vercel will automatically run `prisma generate`, build the Next.js app, and start your Dashboard OS on a live public URL.
-
-### Backend Analytical Engine (Python)
-To run the heavy ML/NLP tasks overnight, deploy the `/python` folder as a Worker.
-1. Create a service on **Render** (Background Worker) or **Railway**.
-2. Point it to this repository.
-3. Set the build command to `pip install -r python/requirements.txt` and start command to `python python/engine.py`.
-4. Provide the same `DATABASE_URL` environment variable so it can talk to the Next.js database.
-
----
-
-## 🔮 7. Future Data Integration Points
-
-The Next-Gen engines have been written using robust `interface` boundaries and mock data loaders specifically so that they can be hotswapped for live APIs:
-- **Yahoo Finance (yfinance):** To replace the `seedDummy.ts` with real nightly 10-year OHLCV histories.
-- **GDELT / News API:** To feed real-time headlines into the NLP News Engine parser.
-- **TradingView Webhooks:** To act as the structural charting source of truth.
-- **Automated Logging:** While scraping Toss is complex, exploring accessibility OCR or Notification parsing to auto-log Toss executions into the `/api/trades` route.
+- [사용 설명서](./a11y-platform/docs/USER_GUIDE.md) — 기능·화면·활용 시나리오
+- [기능 고도화 로드맵](./a11y-platform/docs/ROADMAP_FUNCTIONAL.md)
