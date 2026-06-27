@@ -6,6 +6,7 @@ import {
   type A11yNode,
   type Finding,
 } from '@app/core';
+import { HtmlAnalyzer } from './HtmlAnalyzer';
 
 /** 플레이그라운드용 편집 가능한 디자인 모델 (시각 미리보기 + 스캔 입력 겸용) */
 interface DesignState {
@@ -84,6 +85,7 @@ const SOURCE_LABEL: Record<Finding['source'], string> = { auto: '자동', 'ai-as
 export function App() {
   const [d, setD] = useState<DesignState>(PRESETS.commerce);
   const [dark, setDark] = useState(false);
+  const [view, setView] = useState<'sample' | 'html'>('sample');
   const result = useMemo(() => scanNodes(toNodes(d)), [d]);
   const fails = result.findings.filter((f) => f.status === 'fail');
   const rate = Math.round(result.summary.estimatedPassRate * 100);
@@ -131,20 +133,31 @@ export function App() {
           <p className="sub">KWCAG 2.2 / WCAG 2.2 AA · 색·크기 보정은 결정론적 알고리즘, 텍스트/판단은 AI 보조</p>
           <div className="controls">
             <div className="seg">
-              <button className={d.kind === 'commerce' ? 'on' : ''} onClick={() => loadScenario('commerce')}>커머스</button>
-              <button className={d.kind === 'kiosk' ? 'on' : ''} onClick={() => loadScenario('kiosk')}>키오스크</button>
+              <button className={view === 'sample' ? 'on' : ''} onClick={() => setView('sample')}>샘플 디자인</button>
+              <button className={view === 'html' ? 'on' : ''} onClick={() => setView('html')}>HTML 분석</button>
             </div>
+            {view === 'sample' && (
+              <div className="seg">
+                <button className={d.kind === 'commerce' ? 'on' : ''} onClick={() => loadScenario('commerce')}>커머스</button>
+                <button className={d.kind === 'kiosk' ? 'on' : ''} onClick={() => loadScenario('kiosk')}>키오스크</button>
+              </div>
+            )}
             <button className="ghost" onClick={() => setDark((v) => !v)}>{dark ? '☀ 라이트' : '🌙 다크'}</button>
           </div>
         </div>
-        <div className="scorebox">
-          <div className="score" style={{ color: rate >= 80 ? '#33d17a' : rate >= 50 ? '#ff9d4d' : '#ff6b6b' }}>
-            {rate}%
+        {view === 'sample' && (
+          <div className="scorebox">
+            <div className="score" style={{ color: rate >= 80 ? '#33d17a' : rate >= 50 ? '#ff9d4d' : '#ff6b6b' }}>
+              {rate}%
+            </div>
+            <small>예상 통과율<br />(자동판정 항목 기준)</small>
           </div>
-          <small>예상 통과율<br />(자동판정 항목 기준)</small>
-        </div>
+        )}
       </header>
 
+      {view === 'html' && <HtmlAnalyzer />}
+
+      {view === 'sample' && (
       <div className="cols">
         <section className="panel">
           <div className="panel-head">디자인 미리보기</div>
@@ -207,6 +220,7 @@ export function App() {
           </ul>
         </section>
       </div>
+      )}
 
       <footer className="foot">
         본 결과는 <strong>자동 판정 가능한 항목 기준</strong>이며 전체 접근성 준수를 보장하지 않습니다.

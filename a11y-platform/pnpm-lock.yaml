@@ -99,6 +99,9 @@ importers:
 
   packages/playground:
     dependencies:
+      '@app/api':
+        specifier: workspace:*
+        version: link:../api
       '@app/core':
         specifier: workspace:*
         version: link:../core
