@@ -10,7 +10,13 @@ export interface A11yNode {
 
   // 시각 속성 (정규화)
   fgColor?: string; // hex, 텍스트/전경색
-  bgColor?: string; // hex, 유효 배경색(상속 해석 후)
+  bgColor?: string; // hex, 유효 배경색(상속 해석 후) — 단일색
+  /**
+   * A1: 유효 배경이 여러 색일 때(그라데이션 stop, 겹친 반투명 레이어 블렌딩 결과)
+   * 평가할 후보 배경색들. 존재하면 **최악(worst-case) 대비**로 판정한다.
+   * bgColor 보다 우선.
+   */
+  bgColors?: string[];
   fontSizePx?: number;
   fontWeight?: number;
   bold?: boolean;
@@ -25,6 +31,13 @@ export interface A11yNode {
   focusable?: boolean;
   hasVisibleFocusStyle?: boolean;
   headingLevel?: number; // h1=1 ... (HTML)
+
+  /**
+   * A3: 의미 속성(alt/label/focus 등)이 신뢰 가능한 소스에서 왔는지.
+   * Figma 처럼 레이어명 휴리스틱으로 추론한 경우 false → 해당 판정은 confidence 'low'.
+   * 미지정/true = 신뢰 가능(HTML DOM 등).
+   */
+  semanticsReliable?: boolean;
 
   children?: A11yNode[];
   raw?: unknown; // 어댑터별 원본 핸들(Figma node, DOM el)
@@ -51,6 +64,9 @@ export interface Finding {
   nodeId: string;
   nodeName?: string;
   message: string; // 한국어 설명
+  /** A3: 판정 신뢰도. 휴리스틱 기반(저신뢰)은 사람 확인 권장. 미지정=high. */
+  confidence?: 'high' | 'medium' | 'low';
+  confidenceReason?: string;
   evidence?: Record<string, unknown>; // {ratio: 2.9, required: 4.5}
   fix?: FixSuggestion; // 자동 보정 가능 시
 }
@@ -73,6 +89,11 @@ export interface ScanResult {
 export interface RuleContext {
   /** 룰별 임계값 등 설정 오버라이드 (없으면 rules-data 기본값) */
   params?: Record<string, number>;
+  /**
+   * B1: 색 보정 시 우선 선택할 디자인 시스템 팔레트(hex 목록).
+   * 통과하는 팔레트 색이 있으면 임의 색 대신 그 색을 채택해 토큰 일관성 유지.
+   */
+  palette?: string[];
 }
 
 export interface Rule {

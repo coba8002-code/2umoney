@@ -18,7 +18,7 @@ export function flatten(nodes: A11yNode[]): A11yNode[] {
 
 export function scanNodes(roots: A11yNode[], opts: ScanOptions = {}): ScanResult {
   const rules = opts.rules ?? autoRuleRegistry;
-  const ctx: RuleContext = { params: opts.params };
+  const ctx: RuleContext = { params: opts.params, palette: opts.palette };
   const findings: Finding[] = [];
 
   for (const node of flatten(roots)) {

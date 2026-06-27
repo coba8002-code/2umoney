@@ -1,7 +1,8 @@
-import { converter, formatHex, parse } from 'culori';
+import { converter, formatHex, parse, differenceEuclidean } from 'culori';
 import { contrastRatio } from './contrast';
 
 const toOklch = converter('oklch');
+const deltaEOk = differenceEuclidean('oklab');
 
 export interface NearestColorResult {
   /** 보정된 hex (이미 통과 시 입력 정규화값) */
@@ -9,9 +10,31 @@ export interface NearestColorResult {
   /** 보정 후 실측 대비비 (gamut clamp 반영) */
   ratio: number;
   passed: boolean;
-  /** 어떤 채널을 조정했는지 */
-  adjusted: 'none' | 'lightness' | 'lightness+chroma';
+  /** 어떤 채널/방식으로 조정했는지 */
+  adjusted: 'none' | 'lightness' | 'lightness+chroma' | 'palette';
   styleImpact: 'none' | 'minimal' | 'visible';
+  /** B1: 팔레트 색을 채택한 경우 그 hex */
+  paletteColor?: string;
+}
+
+export interface NearestColorOptions {
+  /** B1: 우선 채택할 디자인 시스템 팔레트(hex). 통과하는 색이 있으면 최소 색차(ΔE)로 선택. */
+  palette?: string[];
+}
+
+/** 팔레트 중 통과하는 색을 원본과 가장 가까운(ΔE 최소) 순으로 선택 */
+function pickFromPalette(fg: string, bg: string, target: number, palette: string[]): string | null {
+  const fgColor = parse(fg);
+  let best: { hex: string; de: number } | null = null;
+  for (const cand of palette) {
+    const parsed = parse(cand);
+    if (!parsed) continue;
+    const hex = formatHex(parsed)!;
+    if (contrastRatio(hex, bg) < target - 1e-9) continue; // 미통과 제외
+    const de = fgColor ? deltaEOk(fgColor, parsed) : 0;
+    if (!best || de < best.de) best = { hex, de };
+  }
+  return best ? best.hex : null;
 }
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -53,7 +76,12 @@ function searchDirection(
  * 3) 양방향 모두 불가하면 C(채도)=0 로 낮춰 재시도 (fallback)
  * 4) 그래도 불가하면 흑/백 중 대비 큰 쪽 반환 (passed=false 가능)
  */
-export function nearestPassingColor(fg: string, bg: string, target = 4.5): NearestColorResult {
+export function nearestPassingColor(
+  fg: string,
+  bg: string,
+  target = 4.5,
+  opts: NearestColorOptions = {},
+): NearestColorResult {
   const startRatio = contrastRatio(fg, bg);
   if (startRatio >= target) {
     return {
@@ -63,6 +91,23 @@ export function nearestPassingColor(fg: string, bg: string, target = 4.5): Neare
       adjusted: 'none',
       styleImpact: 'none',
     };
+  }
+
+  // B1: 팔레트에 통과 색이 있으면 토큰 일관성을 위해 우선 채택
+  if (opts.palette && opts.palette.length > 0) {
+    const fromPalette = pickFromPalette(fg, bg, target, opts.palette);
+    if (fromPalette) {
+      const ratio = contrastRatio(fromPalette, bg);
+      const lDelta = Math.abs((toOklch(parse(fromPalette)!).l ?? 0) - (toOklch(parse(fg)!).l ?? 0));
+      return {
+        color: fromPalette,
+        ratio,
+        passed: true,
+        adjusted: 'palette',
+        styleImpact: lDelta > 0.25 ? 'visible' : 'minimal',
+        paletteColor: fromPalette,
+      };
+    }
   }
 
   const base = toOklch(parse(fg)!);

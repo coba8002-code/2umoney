@@ -46,6 +46,35 @@ export function contrastRatio(fg: string, bg: string): number {
 }
 
 /**
+ * A1: 반투명 전경색(src, alpha 0~1)을 불투명 배경(dst) 위에 알파 합성(over)한
+ * 실효 불투명색을 hex 로 반환. 겹친 반투명 레이어의 유효 배경색 계산에 사용.
+ */
+export function blendOver(src: string, dst: string, alpha: number): string {
+  const a = Math.max(0, Math.min(1, alpha));
+  const [sr, sg, sb] = hexToRgb(src);
+  const [dr, dg, db] = hexToRgb(dst);
+  return rgbToHex(sr * a + dr * (1 - a), sg * a + dg * (1 - a), sb * a + db * (1 - a));
+}
+
+/**
+ * A1: 전경색 fg 에 대해 여러 후보 배경(그라데이션 stop·겹친 레이어) 중
+ * **가장 대비가 낮은(최악) 지점**의 대비와 그 배경색을 반환.
+ * 텍스트가 배경 전 구간에서 기준을 만족해야 하므로 worst-case 로 판정한다.
+ */
+export function worstContrast(
+  fg: string,
+  bgs: string[],
+): { ratio: number; bg: string } {
+  if (bgs.length === 0) throw new Error('worstContrast: 배경 후보가 비어 있습니다.');
+  let worst = { ratio: Infinity, bg: bgs[0] };
+  for (const bg of bgs) {
+    const ratio = contrastRatio(fg, bg);
+    if (ratio < worst.ratio) worst = { ratio, bg };
+  }
+  return worst;
+}
+
+/**
  * 텍스트가 "큰 글씨"인지 판정.
  * WCAG: ≥18pt(=24px) 또는 ≥14pt bold(=18.66px). 단, KWCAG/스펙(4.1)은
  * px 기준 ≥18px(일반) / ≥14px(bold) 를 사용하므로 스펙 파라미터를 따른다.

@@ -11,6 +11,8 @@ export function makeFinding(
     source?: Finding['source'];
     evidence?: Record<string, unknown>;
     fix?: FixSuggestion;
+    confidence?: Finding['confidence'];
+    confidenceReason?: string;
   } = {},
 ): Finding {
   const rule = getRule(ruleId);
@@ -24,9 +26,25 @@ export function makeFinding(
     nodeId: node.id,
     nodeName: node.name,
     message,
+    confidence: opts.confidence ?? 'high',
+    confidenceReason: opts.confidenceReason,
     evidence: opts.evidence,
     fix: opts.fix,
   };
+}
+
+/**
+ * A3: 의미 속성(alt/label/focus)에 의존하는 룰의 신뢰도.
+ * 노드의 semanticsReliable 이 false(예: Figma 레이어명 휴리스틱)면 low.
+ */
+export function semanticConfidence(node: A11yNode): {
+  confidence: Finding['confidence'];
+  confidenceReason?: string;
+} {
+  if (node.semanticsReliable === false) {
+    return { confidence: 'low', confidenceReason: '레이어명 등 휴리스틱 추론 — 사람 확인 권장' };
+  }
+  return { confidence: 'high' };
 }
 
 /** 룰별 파라미터 (컨텍스트 오버라이드 > rules-data 기본값) */

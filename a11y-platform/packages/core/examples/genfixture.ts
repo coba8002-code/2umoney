@@ -8,19 +8,23 @@ const screen: A11yNode[] = [
     type: 'container',
     name: '상품 카드',
     bgColor: '#ffffff',
+    semanticsReliable: false, // Figma 휴리스틱 가정 → 의미 항목 confidence low
     children: [
-      { id: 'hero', type: 'image', name: '대표 이미지', altText: null },
+      { id: 'hero', type: 'image', name: '대표 이미지', altText: null, semanticsReliable: false },
       { id: 'title', type: 'text', name: '제목 / 무선 이어폰', fgColor: '#222222', bgColor: '#ffffff', fontSizePx: 20, bold: true },
       { id: 'desc', type: 'text', name: '설명 / 연회색', fgColor: '#aaaaaa', bgColor: '#ffffff', fontSizePx: 14 },
       { id: 'price', type: 'text', name: '가격 / 노랑', fgColor: '#ffd54f', bgColor: '#ffffff', fontSizePx: 16, bold: true },
+      // A1: 그라데이션 배너 위 흰 글씨 — 옅은 stop 에서 미달
+      { id: 'banner', type: 'text', name: '배너 / 그라데이션 위', fgColor: '#ffffff', bgColors: ['#1565c0', '#90caf9'], fontSizePx: 16 },
       { id: 'buy', type: 'button', name: '구매하기', label: '구매하기', fgColor: '#ffffff', bgColor: '#1976d2', width: 120, height: 36 },
-      { id: 'search', type: 'input', name: '검색 입력', label: null, width: 220, height: 40 },
-      { id: 'detail', type: 'link', name: '자세히 보기', fgColor: '#1976d2', bgColor: '#ffffff', fontSizePx: 14, focusable: true, hasVisibleFocusStyle: false, label: '자세히 보기' },
+      { id: 'search', type: 'input', name: '검색 입력', label: null, width: 220, height: 40, semanticsReliable: false },
+      { id: 'detail', type: 'link', name: '자세히 보기', fgColor: '#1976d2', bgColor: '#ffffff', fontSizePx: 14, focusable: true, hasVisibleFocusStyle: false, label: '자세히 보기', semanticsReliable: false },
     ],
   },
 ];
 
-const result = scanNodes(screen);
+// B1: 디자인 시스템 팔레트를 주입 → 색 보정이 팔레트 색을 우선 채택
+const result = scanNodes(screen, { palette: ['#0d47a1', '#212121', '#b26a00', '#1565c0'] });
 const out = '/tmp/claude-0/-home-user-2umoney/e8ece91c-7181-5378-8fb6-e0d5d22f280b/scratchpad/result.json';
 writeFileSync(out, JSON.stringify(result));
 console.log(`wrote ${out} — findings: ${result.findings.length}, fail: ${result.summary.fail}`);

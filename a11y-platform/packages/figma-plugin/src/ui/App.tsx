@@ -29,6 +29,17 @@ const SOURCE_LABEL: Record<Finding['source'], string> = {
   manual: '수동',
 };
 
+// A3: 신뢰도 배지 (low/medium 만 표시 — high 는 기본이라 생략)
+function ConfidenceBadge({ f }: { f: Finding }) {
+  if (!f.confidence || f.confidence === 'high') return null;
+  const color = f.confidence === 'low' ? '#8d6e63' : '#9e7b00';
+  return (
+    <span className="badge" style={{ background: color }} title={f.confidenceReason ?? ''}>
+      확인필요
+    </span>
+  );
+}
+
 function Badge({ children, color }: { children: React.ReactNode; color: string }) {
   return (
     <span className="badge" style={{ background: color }}>
@@ -62,6 +73,7 @@ function FindingCard({
           <Badge color={SEVERITY_COLOR[f.severity]}>{f.severity}</Badge>
         )}
         <Badge color="#455a64">{SOURCE_LABEL[f.source]}</Badge>
+        <ConfidenceBadge f={f} />
         <span className="node-name">{f.nodeName ?? f.nodeId}</span>
       </div>
       <p className="criterion">{f.criterion}</p>
@@ -96,13 +108,19 @@ export function App() {
   const [toast, setToast] = useState<string>('');
   const [ignored, setIgnored] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<'all' | 'fail' | 'manual'>('fail');
+  const [undoDepth, setUndoDepth] = useState(0);
+  const [paletteSize, setPaletteSize] = useState(0);
+  const [confirmBatch, setConfirmBatch] = useState(false);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const msg = event.data.pluginMessage as MainToUi | undefined;
       if (!msg) return;
-      if (msg.type === 'scan-result') setResult(msg.result);
-      else if (msg.type === 'applied') setToast(msg.message);
+      if (msg.type === 'scan-result') {
+        setResult(msg.result);
+        setPaletteSize(msg.paletteSize);
+      } else if (msg.type === 'applied') setToast(msg.message);
+      else if (msg.type === 'undo-state') setUndoDepth(msg.depth);
       else if (msg.type === 'error') setToast(msg.message);
     };
     window.addEventListener('message', handler);
@@ -117,7 +135,8 @@ export function App() {
     return result.findings.filter((f) => (filter === 'all' ? true : f.status === filter));
   }, [result, filter]);
 
-  const colorFails = result?.findings.filter((f) => f.status === 'fail' && f.fix?.kind === 'color').length ?? 0;
+  const colorFixList = result?.findings.filter((f) => f.status === 'fail' && f.fix?.kind === 'color') ?? [];
+  const colorFails = colorFixList.length;
 
   const key = (f: Finding) => `${f.nodeId}::${f.ruleId}`;
 
@@ -143,7 +162,10 @@ export function App() {
             <span className="stat manual">수동 {summary.manual}</span>
             <span className="rate">
               예상 통과율 {passRate}%
-              <small>{summary.estimatedPassRateLabel}</small>
+              <small>
+                {summary.estimatedPassRateLabel}
+                {paletteSize > 0 ? ` · 팔레트 ${paletteSize}색 인지 보정` : ''}
+              </small>
             </span>
           </div>
         )}
@@ -159,8 +181,13 @@ export function App() {
             ))}
           </div>
           <div className="toolbar-right">
+            {undoDepth > 0 && (
+              <button type="button" onClick={() => send({ type: 'undo' })} title="마지막 보정 되돌리기">
+                ↩ 되돌리기 ({undoDepth})
+              </button>
+            )}
             {colorFails > 0 && (
-              <button type="button" onClick={() => send({ type: 'apply-all-color' })}>
+              <button type="button" onClick={() => setConfirmBatch(true)}>
                 모든 색대비 자동 보정 ({colorFails})
               </button>
             )}
@@ -196,6 +223,42 @@ export function App() {
           본 결과는 <strong>자동 판정 가능한 항목 기준</strong>이며, 전체 접근성 준수를 보장하지 않습니다. 보정은 항목별로 직접 검토·수락 후 적용됩니다.
         </p>
       </footer>
+
+      {confirmBatch && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="일괄 보정 미리보기">
+          <div className="modal">
+            <h2>색대비 일괄 보정 — {colorFixList.length}건</h2>
+            <p className="modal-sub">적용 전 변경 내용을 확인하세요. 적용 후 [되돌리기]로 한 번에 복구할 수 있습니다.</p>
+            <ul className="diff-list">
+              {colorFixList.map((f) => (
+                <li key={key(f)}>
+                  <span className="dl-name">{f.nodeName ?? f.nodeId}</span>
+                  <span className="dl-swatch" style={{ background: String(f.fix!.before.fgColor) }} />
+                  <code>{String(f.fix!.before.fgColor)}</code>
+                  <span className="arrow">→</span>
+                  <span className="dl-swatch" style={{ background: String(f.fix!.after.fgColor) }} />
+                  <code>{String(f.fix!.after.fgColor)}</code>
+                </li>
+              ))}
+            </ul>
+            <div className="modal-actions">
+              <button type="button" onClick={() => setConfirmBatch(false)}>
+                취소
+              </button>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  send({ type: 'apply-all-color' });
+                  setConfirmBatch(false);
+                }}
+              >
+                {colorFixList.length}건 적용
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="toast" role="alert" onAnimationEnd={() => setToast('')}>

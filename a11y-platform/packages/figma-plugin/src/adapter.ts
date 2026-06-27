@@ -121,6 +121,9 @@ export function toA11yNode(node: SceneNode, depth = 0): A11yNode {
     bgColor: bg,
     width: 'width' in node ? node.width : undefined,
     height: 'height' in node ? node.height : undefined,
+    // A3: Figma 에는 실제 접근성 의미정보가 없어 alt/label/focus 는 휴리스틱 추론 →
+    // 해당 판정은 신뢰도 'low' 로 내려가 사람 확인을 권장한다.
+    semanticsReliable: false,
     raw: node,
   };
 

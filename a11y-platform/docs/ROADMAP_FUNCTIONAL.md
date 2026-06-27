@@ -6,6 +6,20 @@
 
 ---
 
+## ✅ 구현 완료 (1차 스프린트 — A1·A3·B1·B4)
+
+| 항목 | 내용 | 검증 |
+|---|---|---|
+| **A1** | 그라데이션·반투명 유효 배경색(`blendOver`) + **최악지점 대비**(`worstContrast`). `A11yNode.bgColors`로 여러 배경 평가 | core 테스트 |
+| **A3** | `Finding.confidence`(high/medium/low). Figma 휴리스틱 의미정보는 `semanticsReliable:false`→ **확인필요 배지** | core 테스트 |
+| **B1** | `nearestPassingColor`에 **팔레트/토큰 후보** 지원 — 통과하는 팔레트 색을 ΔE 최소로 채택. Figma Variables를 팔레트로 주입 | core 테스트 |
+| **B4** | Figma 일괄 보정 **diff 미리보기 모달** + **되돌리기(undo) 스택** | 빌드·캡처 |
+
+> 코어 단위 테스트 **41개 통과**, core·plugin 타입체크 클린, 플러그인 빌드·패널 캡처(`docs/screens/05`,`07`) 확인.
+> 나머지 항목(A2·B2·B3·C·D·E·F)은 아래 로드맵대로 후속 진행.
+
+---
+
 ## 0. 현재 역량과 한계 (정직한 출발점)
 
 **할 수 있는 것**

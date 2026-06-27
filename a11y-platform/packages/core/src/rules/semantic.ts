@@ -1,5 +1,5 @@
 import type { Rule } from '../types';
-import { makeFinding } from './helpers';
+import { makeFinding, semanticConfidence } from './helpers';
 
 const hasText = (s: string | null | undefined): boolean => typeof s === 'string' && s.trim().length > 0;
 
@@ -23,6 +23,7 @@ export const imgAltRule: Rule = {
     }
     return makeFinding('img.alt', node, 'fail', '이미지에 대체텍스트가 없습니다.', {
       source: 'ai-assisted',
+      ...semanticConfidence(node),
       evidence: { altText: node.altText ?? null },
       fix: {
         kind: 'altText',
@@ -54,6 +55,7 @@ export const controlLabelRule: Rule = {
       `${node.type === 'input' ? '입력 필드' : '버튼'}에 연결된 레이블/접근 가능한 이름이 없습니다.`,
       {
         source: 'ai-assisted',
+        ...semanticConfidence(node),
         evidence: { label: node.label ?? null },
         fix: {
           kind: 'aria',
@@ -78,6 +80,7 @@ export const focusVisibleRule: Rule = {
       });
     }
     return makeFinding('focus.visible', node, 'fail', '키보드 포커스 시 가시적 표시가 없습니다.', {
+      ...semanticConfidence(node),
       evidence: { hasVisibleFocusStyle: false },
       fix: {
         kind: 'focusStyle',
