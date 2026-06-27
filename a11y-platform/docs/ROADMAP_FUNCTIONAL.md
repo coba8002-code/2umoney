@@ -15,8 +15,18 @@
 | **B1** | `nearestPassingColor`에 **팔레트/토큰 후보** 지원 — 통과하는 팔레트 색을 ΔE 최소로 채택. Figma Variables를 팔레트로 주입 | core 테스트 |
 | **B4** | Figma 일괄 보정 **diff 미리보기 모달** + **되돌리기(undo) 스택** | 빌드·캡처 |
 
-> 코어 단위 테스트 **41개 통과**, core·plugin 타입체크 클린, 플러그인 빌드·패널 캡처(`docs/screens/05`,`07`) 확인.
-> 나머지 항목(A2·B2·B3·C·D·E·F)은 아래 로드맵대로 후속 진행.
+### ✅ 2차 스프린트 — A2·B2·B3·C1·D
+
+| 항목 | 내용 | 검증 |
+|---|---|---|
+| **A2** | 룰 확장: `text.lineHeight`·`text.letterSpacing`·`link.identifiable` + `heading.structure`(문서순서 후처리) | core 테스트 |
+| **B2** | `colorFixVariants` — AA/AAA/색각안전 3변형. `contrast.text` fix 에 aaaColor·cvdSafeColor 힌트 | core 테스트 |
+| **B3** | `color/cvd.ts` — Viénot 색각이상(적·녹·청) 시뮬레이션 + `worstCvdContrast` | core 테스트 |
+| **C1** | `@app/ai` — `LlmProvider` 추상화 + 네트워크 없는 `HeuristicAltProvider` + `enrichAltSuggestions` | ai 테스트 |
+| **D** | `@app/api` — HTML DOM 스냅샷 어댑터 + `scanSnapshot`(코어 룰 재사용+axe 병합) + REST 핸들러(`/v1/scan·fix·report`) + Playwright 콜렉터 | api 테스트 |
+
+> 전체 단위 테스트 **81개 통과**(core 60·api 14·ai 7), 전 패키지 타입체크 클린.
+> 남은 항목: B4 외 UI 변형 선택, C2 문맥 평가 LLM 실연동, D 의 실 브라우저/axe 번들·Fastify 서버 기동, E(대시보드·CI)·F(키오스크).
 
 ---
 
