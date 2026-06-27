@@ -6,7 +6,7 @@ import {
   type A11yNode,
   type Finding,
 } from '@app/core';
-import { HtmlAnalyzer } from './HtmlAnalyzer';
+import { Analyzer } from './Analyzer';
 
 /** 플레이그라운드용 편집 가능한 디자인 모델 (시각 미리보기 + 스캔 입력 겸용) */
 interface DesignState {
@@ -134,7 +134,7 @@ export function App() {
           <div className="controls">
             <div className="seg">
               <button className={view === 'sample' ? 'on' : ''} onClick={() => setView('sample')}>샘플 디자인</button>
-              <button className={view === 'html' ? 'on' : ''} onClick={() => setView('html')}>HTML 분석</button>
+              <button className={view === 'html' ? 'on' : ''} onClick={() => setView('html')}>분석 (URL·HTML·이미지·Figma)</button>
             </div>
             {view === 'sample' && (
               <div className="seg">
@@ -155,7 +155,7 @@ export function App() {
         )}
       </header>
 
-      {view === 'html' && <HtmlAnalyzer />}
+      {view === 'html' && <Analyzer />}
 
       {view === 'sample' && (
       <div className="cols">

@@ -20,3 +20,11 @@ export {
   type FixDiffEntry,
 } from './routes';
 export { collectFromUrl, type CollectOptions, type CollectResult } from './collect';
+export {
+  figmaFileToA11yNodes,
+  figmaColorToHex,
+  parseFigmaFileKey,
+  type FigmaRestNode,
+  type FigmaPaint,
+  type FigmaColor,
+} from './figmaRestAdapter';
