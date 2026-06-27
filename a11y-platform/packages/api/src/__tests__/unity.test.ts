@@ -82,4 +82,31 @@ describe('unityAdapter — 정규화 + 결정론 룰셋 적용', () => {
     expect(unityExportToA11yNodes([{ id: 'a', kind: 'Text', text: 'x' }])).toHaveLength(1);
     expect(unityExportToA11yNodes({ id: 'b', kind: 'Image' })[0].type).toBe('image');
   });
+
+  it('C# 스크립트 출력 형식({nodes:[...]})을 그대로 처리', () => {
+    // examples/unity/A11yUnityExporter.cs 가 내보내는 구조
+    const scriptOutput: UnityExport = {
+      screenBg: '#ffffff',
+      nodes: [
+        {
+          id: 'Canvas',
+          name: 'Canvas',
+          kind: 'Canvas',
+          backgroundColor: '#ffffff',
+          children: [
+            { id: 'Canvas/Title', name: 'Title', kind: 'TMP_Text', text: '주문', color: '#222222', fontSizePx: 40, fontStyle: 'Bold' },
+            { id: 'Canvas/Small', name: 'Small', kind: 'Button', backgroundColor: '#cccccc', interactable: true, hasFocusVisual: false, rect: { width: 28, height: 28 } },
+          ],
+        },
+      ],
+    };
+    const nodes = unityExportToA11yNodes(scriptOutput);
+    expect(nodes[0].type).toBe('container');
+    const title = nodes[0].children![0];
+    expect(title.type).toBe('text');
+    expect(title.bold).toBe(true); // fontStyle:'Bold' → bold
+    const { findings } = scanNodes(nodes);
+    // 큰 폰트·충분한 대비 제목은 통과, 작은 버튼은 타깃 크기 실패
+    expect(findings.find((f) => f.ruleId === 'target.size' && f.nodeId === 'Canvas/Small')?.status).toBe('fail');
+  });
 });
