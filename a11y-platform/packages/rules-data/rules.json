@@ -87,12 +87,45 @@
       "id": "heading.structure",
       "criterion": "KWCAG 7.1.1 제목 제공 / WCAG 1.3.1 Info and Relationships",
       "standard": ["KWCAG2.2", "WCAG2.2"],
-      "auto": false,
+      "auto": true,
       "severity": "moderate",
       "fixable": "none",
       "titleKo": "제목 단계 구조",
       "titleEn": "Heading structure",
       "params": { "maxSkip": 1 }
+    },
+    {
+      "id": "text.lineHeight",
+      "criterion": "KWCAG 가독성 권장 / WCAG 1.4.12 Text Spacing",
+      "standard": ["WCAG2.2"],
+      "auto": true,
+      "severity": "minor",
+      "fixable": "none",
+      "titleKo": "행간(줄 간격)",
+      "titleEn": "Line height",
+      "params": { "minRatio": 1.5 }
+    },
+    {
+      "id": "text.letterSpacing",
+      "criterion": "KWCAG 가독성 권장 / WCAG 1.4.12 Text Spacing",
+      "standard": ["WCAG2.2"],
+      "auto": true,
+      "severity": "minor",
+      "fixable": "none",
+      "titleKo": "자간(글자 간격)",
+      "titleEn": "Letter spacing",
+      "params": { "minRatioEm": 0.12 }
+    },
+    {
+      "id": "link.identifiable",
+      "criterion": "KWCAG 5.3.2 색에 무관한 콘텐츠 인식 / WCAG 1.4.1 Use of Color",
+      "standard": ["KWCAG2.2", "WCAG2.2"],
+      "auto": true,
+      "severity": "moderate",
+      "fixable": "none",
+      "titleKo": "링크 식별성(색 의존)",
+      "titleEn": "Link identifiable without color",
+      "params": {}
     }
   ]
 }

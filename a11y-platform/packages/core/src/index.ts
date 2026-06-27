@@ -2,6 +2,8 @@
 export * from './types';
 export { hexToRgb, rgbToHex, relLuminance, contrastRatio, isLargeText, blendOver, worstContrast } from './color/contrast';
 export { nearestPassingColor, type NearestColorResult, type NearestColorOptions } from './color/nearestPassingColor';
+export { simulateCVD, worstCvdContrast, ALL_CVD, type CvdType } from './color/cvd';
+export { colorFixVariants, type ColorFixVariants, type VariantOptions } from './color/variants';
 export { scanNodes, summarize, flatten, type ScanOptions } from './engine';
 export { autoRuleRegistry } from './rules';
 export { buildReport, reportToJson, reportToText, type A11yReport, type ReportBreakdown } from './report';

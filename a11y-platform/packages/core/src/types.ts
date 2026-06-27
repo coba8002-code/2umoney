@@ -20,6 +20,9 @@ export interface A11yNode {
   fontSizePx?: number;
   fontWeight?: number;
   bold?: boolean;
+  lineHeightPx?: number; // A2: 행간 (px)
+  letterSpacingPx?: number; // A2: 자간 (px)
+  textDecoration?: 'none' | 'underline' | 'line-through' | 'overline'; // A2: link.identifiable
   width?: number;
   height?: number; // px
 

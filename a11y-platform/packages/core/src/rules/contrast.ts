@@ -1,6 +1,7 @@
 import type { Rule, A11yNode } from '../types';
 import { isLargeText, worstContrast } from '../color/contrast';
 import { nearestPassingColor } from '../color/nearestPassingColor';
+import { colorFixVariants } from '../color/variants';
 import { makeFinding, paramOf } from './helpers';
 
 const TEXT_TYPES = new Set<A11yNode['type']>(['text', 'link', 'button']);
@@ -42,7 +43,9 @@ export const contrastTextRule: Rule = {
       });
     }
 
-    const fixColor = nearestPassingColor(fg, bg, required, { palette: ctx.palette });
+    // B2: AA(최소)·AAA·색각안전 변형 제공
+    const variants = colorFixVariants(fg, bg, { large, palette: ctx.palette });
+    const fixColor = variants.aa;
     const token = fixColor.adjusted === 'palette';
     return makeFinding(
       'contrast.text',
@@ -54,11 +57,19 @@ export const contrastTextRule: Rule = {
         fix: {
           kind: 'color',
           before: { fgColor: fg, ratio: r2(ratio) },
-          after: { fgColor: fixColor.color, ratio: r2(fixColor.ratio) },
+          after: {
+            fgColor: fixColor.color,
+            ratio: r2(fixColor.ratio),
+            // B2 변형: 사용자가 미리보기 후 선택 가능
+            aaaColor: variants.aaa.color,
+            aaaRatio: r2(variants.aaa.ratio),
+            cvdSafeColor: variants.cvdSafe.color,
+            cvdSafeRatio: r2(variants.cvdSafe.ratio),
+          },
           styleImpact: fixColor.styleImpact,
           rationale: token
-            ? `디자인 팔레트 내 통과 색(${fixColor.color})으로 치환해 토큰 일관성을 유지합니다. (대비 ${r2(fixColor.ratio)}:1)`
-            : `색상·채도를 유지하고 명도만 조정해 대비 ${r2(fixColor.ratio)}:1 로 보정합니다.`,
+            ? `디자인 팔레트 내 통과 색(${fixColor.color})으로 치환해 토큰 일관성을 유지합니다. (대비 ${r2(fixColor.ratio)}:1) · AAA/색각안전 변형 제공`
+            : `색상·채도를 유지하고 명도만 조정해 대비 ${r2(fixColor.ratio)}:1 로 보정합니다. · AAA/색각안전 변형 제공`,
         },
       },
     );

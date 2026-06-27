@@ -2,8 +2,10 @@ import type { Rule } from '../types';
 import { contrastTextRule, contrastNonTextRule } from './contrast';
 import { targetSizeRule, textSizeRule } from './size';
 import { imgAltRule, controlLabelRule, focusVisibleRule } from './semantic';
+import { lineHeightRule, letterSpacingRule } from './textSpacing';
+import { linkIdentifiableRule } from './link';
 
-/** Phase 1 자동 판정 룰 레지스트리 (heading.structure 는 HTML 전용=Phase 2) */
+/** 자동 판정 per-node 룰 레지스트리 (heading.structure 는 문서순서 의존 → engine 후처리) */
 export const autoRuleRegistry: Rule[] = [
   contrastTextRule,
   contrastNonTextRule,
@@ -12,6 +14,9 @@ export const autoRuleRegistry: Rule[] = [
   targetSizeRule,
   textSizeRule,
   focusVisibleRule,
+  lineHeightRule,
+  letterSpacingRule,
+  linkIdentifiableRule,
 ];
 
 export {
@@ -22,4 +27,8 @@ export {
   imgAltRule,
   controlLabelRule,
   focusVisibleRule,
+  lineHeightRule,
+  letterSpacingRule,
+  linkIdentifiableRule,
 };
+export { headingStructureFindings } from './heading';

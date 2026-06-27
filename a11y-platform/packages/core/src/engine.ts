@@ -1,5 +1,5 @@
 import type { A11yNode, Finding, ScanResult, ScanSummary, Rule, RuleContext } from './types';
-import { autoRuleRegistry } from './rules';
+import { autoRuleRegistry, headingStructureFindings } from './rules';
 
 export interface ScanOptions extends RuleContext {
   rules?: Rule[];
@@ -19,15 +19,19 @@ export function flatten(nodes: A11yNode[]): A11yNode[] {
 export function scanNodes(roots: A11yNode[], opts: ScanOptions = {}): ScanResult {
   const rules = opts.rules ?? autoRuleRegistry;
   const ctx: RuleContext = { params: opts.params, palette: opts.palette };
+  const ordered = flatten(roots);
   const findings: Finding[] = [];
 
-  for (const node of flatten(roots)) {
+  for (const node of ordered) {
     for (const rule of rules) {
       if (!rule.appliesTo(node)) continue;
       const f = rule.evaluate(node, ctx);
       if (f) findings.push(f);
     }
   }
+
+  // 문서 순서 의존 후처리 (A2: 제목 단계 구조)
+  findings.push(...headingStructureFindings(ordered, ctx));
 
   return { findings, summary: summarize(findings) };
 }
