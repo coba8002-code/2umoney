@@ -134,7 +134,7 @@ export function App() {
           <div className="controls">
             <div className="seg">
               <button className={view === 'sample' ? 'on' : ''} onClick={() => setView('sample')}>샘플 디자인</button>
-              <button className={view === 'html' ? 'on' : ''} onClick={() => setView('html')}>분석 (URL·HTML·이미지·Figma)</button>
+              <button className={view === 'html' ? 'on' : ''} onClick={() => setView('html')}>분석 (URL·HTML·이미지·Figma·Unity)</button>
             </div>
             {view === 'sample' && (
               <div className="seg">
