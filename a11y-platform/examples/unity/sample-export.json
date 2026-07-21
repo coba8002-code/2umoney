@@ -1,0 +1,56 @@
+{
+  "screenBg": "#ffffff",
+  "nodes": [
+    {
+      "id": "Canvas",
+      "name": "Canvas",
+      "kind": "Canvas",
+      "backgroundColor": "#ffffff",
+      "children": [
+        {
+          "id": "Canvas/Title",
+          "name": "Title",
+          "kind": "TMP_Text",
+          "text": "키오스크 주문",
+          "color": "#222222",
+          "fontSizePx": 40
+        },
+        {
+          "id": "Canvas/PayButton",
+          "name": "PayButton",
+          "kind": "Button",
+          "backgroundColor": "#1976d2",
+          "interactable": true,
+          "hasFocusVisual": true,
+          "rect": { "width": 260, "height": 72 },
+          "children": [
+            {
+              "id": "Canvas/PayButton/Label",
+              "name": "Label",
+              "kind": "Text",
+              "text": "결제하기",
+              "color": "#ffffff",
+              "fontSizePx": 24
+            }
+          ]
+        },
+        {
+          "id": "Canvas/SmallClose",
+          "name": "SmallClose",
+          "kind": "Button",
+          "backgroundColor": "#cccccc",
+          "interactable": true,
+          "hasFocusVisual": false,
+          "rect": { "width": 28, "height": 28 }
+        },
+        {
+          "id": "Canvas/Logo",
+          "name": "Logo",
+          "kind": "Image",
+          "backgroundColor": "#eeeeee",
+          "rect": { "width": 120, "height": 40 }
+        }
+      ]
+    }
+  ]
+}

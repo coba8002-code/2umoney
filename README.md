@@ -111,5 +111,8 @@ cd a11y-platform && pnpm --filter @app/api serve   # http://localhost:3001
 
 ## 문서
 
-- [사용 설명서](./a11y-platform/docs/USER_GUIDE.md) — 기능·화면·활용 시나리오
+- [사용 설명서](./a11y-platform/docs/USER_MANUAL.md) — 화면 캡처로 보는 기능별 사용법
+- [기능 정의서](./a11y-platform/docs/FEATURE_SPEC.md) — 룰셋·보정 엔진·API·가드레일 정의
+- [사용 가이드(초기)](./a11y-platform/docs/USER_GUIDE.md) — 활용 시나리오
 - [기능 고도화 로드맵](./a11y-platform/docs/ROADMAP_FUNCTIONAL.md)
+- [Unity 키오스크 접근성 가이드](./a11y-platform/docs/UNITY_KIOSK.md) — export JSON 분석 + 비전 폴백 + 수동 점검 항목

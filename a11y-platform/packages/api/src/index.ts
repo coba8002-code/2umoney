@@ -37,3 +37,11 @@ export {
   type FigmaPaint,
   type FigmaColor,
 } from './figmaRestAdapter';
+export {
+  unityExportToA11yNodes,
+  unityColorToHex,
+  type UnityNode,
+  type UnityExport,
+  type UnityColor,
+  type UnityColorInput,
+} from './unityAdapter';
