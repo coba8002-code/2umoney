@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fetchViaProxy, analyzeSite, analyzeUnity, normalizeUrl, DEFAULT_URL_PROXIES } from './analyzers';
+import { fetchViaProxy, analyzeSite, analyzeUnity, analyzeKiosk, normalizeUrl, DEFAULT_URL_PROXIES } from './analyzers';
 
 function okText(text: string): Response {
   return { ok: true, status: 200, text: async () => text } as unknown as Response;
@@ -116,5 +116,26 @@ describe('Unity export 분석 — analyzeUnity', () => {
 
   it('잘못된 JSON 은 친절한 에러', () => {
     expect(() => analyzeUnity('{not json')).toThrow(/JSON 형식/);
+  });
+});
+
+describe('키오스크 진단(운영 화면) — analyzeKiosk', () => {
+  it('화면 모델 JSON → 진단 리포트(브라우저 실행)', () => {
+    const json = JSON.stringify({
+      screenSpec: { diagonalInch: 15.6, widthPx: 1920, heightPx: 1080 },
+      elements: [
+        { id: 't', kind: 'text', boxPx: { x: 0, y: 0, widthPx: 100, heightPx: 20 }, fgColor: '#aaa', bgColor: '#fff' },
+        { id: 'b', kind: 'button', boxPx: { x: 0, y: 0, widthPx: 40, heightPx: 40 }, fgColor: '#fff', bgColor: '#1976d2' },
+      ],
+    });
+    const r = analyzeKiosk(json);
+    expect(r.summary.부적합).toBeGreaterThan(0);
+    expect(r.priorities.length).toBeGreaterThan(0);
+    expect(r.remedyBreakdown).toHaveProperty('S/W');
+  });
+
+  it('elements 없으면 에러', () => {
+    expect(() => analyzeKiosk('{"elements":[]}')).toThrow(/elements/);
+    expect(() => analyzeKiosk('{bad')).toThrow(/JSON/);
   });
 });

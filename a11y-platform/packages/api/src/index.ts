@@ -45,3 +45,15 @@ export {
   type UnityColor,
   type UnityColorInput,
 } from './unityAdapter';
+export { diagnoseKioskScreen } from './kiosk/diagnose';
+export type {
+  KioskScreen,
+  KioskElement,
+  KioskElementKind,
+  KioskBox,
+  KioskFinding,
+  KioskReport,
+  DiagnosisStatus,
+  Remedy,
+  Importance,
+} from './kiosk/types';

@@ -1,6 +1,14 @@
 /** 브라우저용 분석 함수들: URL · 이미지 · Figma (HTML 은 ../htmlAnalyze) */
 import { scanNodes, type ScanResult, type A11yNode } from '@app/core';
-import { figmaFileToA11yNodes, parseFigmaFileKey, unityExportToA11yNodes, type UnityExport } from '@app/api';
+import {
+  figmaFileToA11yNodes,
+  parseFigmaFileKey,
+  unityExportToA11yNodes,
+  diagnoseKioskScreen,
+  type UnityExport,
+  type KioskScreen,
+  type KioskReport,
+} from '@app/api';
 import {
   HeuristicAltProvider,
   ClaudeAltProvider,
@@ -258,4 +266,21 @@ export function analyzeUnity(jsonText: string): ScanResult {
   const nodes = unityExportToA11yNodes(parsed);
   if (nodes.length === 0) throw new Error('분석할 UI 노드가 없습니다. root 또는 nodes 를 확인하세요.');
   return scanNodes(nodes);
+}
+
+/**
+ * ④ 키오스크 화면 진단(운영 화면) — 검출요소+보정 JSON → 실행형 리포트.
+ * 진단 로직이 순수 계산이라 서버 없이 브라우저에서 바로 실행된다.
+ */
+export function analyzeKiosk(jsonText: string): KioskReport {
+  let parsed: KioskScreen;
+  try {
+    parsed = JSON.parse(jsonText) as KioskScreen;
+  } catch {
+    throw new Error('JSON 형식이 올바르지 않습니다. 키오스크 화면 모델을 확인하세요.');
+  }
+  if (!parsed || !Array.isArray(parsed.elements) || parsed.elements.length === 0) {
+    throw new Error('elements 배열이 필요합니다(검출된 UI 요소).');
+  }
+  return diagnoseKioskScreen(parsed);
 }

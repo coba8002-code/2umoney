@@ -1,0 +1,19 @@
+{
+  "name": "cnc-twin-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "가상 CNC 디지털트윈 도메인 코어 (검증된 TS 레퍼런스 → Unity C# 포팅 대상)",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "demo": "node esbuild-demo.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -42,6 +42,9 @@ importers:
       '@app/core':
         specifier: workspace:*
         version: link:../core
+      '@app/kiosk-criteria':
+        specifier: workspace:*
+        version: link:../kiosk-criteria
       '@fastify/cors':
         specifier: ^9.0.1
         version: 9.0.1
@@ -124,6 +127,15 @@ importers:
       vite-plugin-singlefile:
         specifier: ^2.0.1
         version: 2.3.3(rollup@4.62.2)(vite@5.4.21(@types/node@22.20.0))
+
+  packages/kiosk-criteria:
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.0)
 
   packages/playground:
     dependencies:

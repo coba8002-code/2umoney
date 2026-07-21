@@ -1,0 +1,15 @@
+# 최저비용(무료) 배포 — 경량 이미지. 키오스크 진단·HTML 스캔·대체텍스트용(URL 크롤 제외).
+# Render Free: $0/월. 15분 미사용 시 슬립 → 첫 요청 콜드스타트(~30초). PoC 에 적합.
+services:
+  - type: web
+    name: jux-api-slim
+    runtime: docker
+    dockerfilePath: ./Dockerfile.slim
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "3001"
+      # 비전 LLM(/v1/alt) 사용 시 대시보드에서 입력. 미설정 시 결정론 폴백.
+      - key: ANTHROPIC_API_KEY
+        sync: false

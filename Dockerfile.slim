@@ -1,0 +1,23 @@
+# 최저비용 경량 이미지 — 키오스크 진단·HTML 스캔·대체텍스트(/v1/kiosk/diagnose, /v1/scan(html), /v1/alt, /v1/report)용.
+# URL 크롤(/v1/crawl, /v1/scan url)은 Chromium 이 없어 동작하지 않는다(그 기능이 필요하면 루트 Dockerfile 사용).
+# node:20-alpine(~180MB) 기반이라 무료/소형 인스턴스(512MB RAM)에서도 뜬다.
+FROM node:20-alpine
+
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+COPY a11y-platform/ ./a11y-platform/
+WORKDIR /app/a11y-platform
+
+# Chromium 다운로드 방지 + 브라우저 없이 설치
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+RUN pnpm install --no-frozen-lockfile
+RUN pnpm --filter @app/api build
+
+ENV PORT=3001
+# ANTHROPIC_API_KEY 설정 시 /v1/alt 가 멀티모달 Claude 사용(미설정 시 결정론 폴백)
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD node -e "fetch('http://localhost:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["node", "packages/api/dist/serve.mjs"]
