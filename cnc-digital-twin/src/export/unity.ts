@@ -4,6 +4,7 @@
  * (JsonUtility 제약: Dictionary 불가, 최상위 객체·중첩 배열/객체만. 여기서 준수)
  */
 import type { ToolpathResult, ToolpathPoint } from '../toolpath/generator';
+import type { Heightfield } from '../sim/heightfield';
 
 export interface UVec3 {
   x: number;
@@ -55,4 +56,23 @@ export function toUnityToolpath(result: ToolpathResult): UnityToolpathDoc {
 
 export function toUnityToolpathJson(result: ToolpathResult): string {
   return JSON.stringify(toUnityToolpath(result), null, 2);
+}
+
+/** P3: 절삭 후 소재 하이트필드 → Unity 메시 빌드용 격자. */
+export interface UnityHeightfield {
+  originX: number;
+  originY: number;
+  nx: number;
+  ny: number;
+  cellMm: number;
+  z: number[]; // 길이 nx*ny, 인덱스 = iy*nx+ix
+}
+
+export function toUnityHeightfield(hf: Heightfield): UnityHeightfield {
+  const { originX, originY, nx, ny, cellMm } = hf.cfg;
+  return { originX, originY, nx, ny, cellMm, z: Array.from(hf.z, (v) => round(v, 4)) };
+}
+
+export function toUnityHeightfieldJson(hf: Heightfield): string {
+  return JSON.stringify(toUnityHeightfield(hf));
 }

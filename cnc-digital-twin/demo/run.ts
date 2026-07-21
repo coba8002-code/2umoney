@@ -3,7 +3,10 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseProgram } from '../src/gcode/parser';
 import { generateToolpath } from '../src/toolpath/generator';
-import { toUnityToolpathJson } from '../src/export/unity';
+import { toUnityToolpathJson, toUnityHeightfieldJson } from '../src/export/unity';
+import { heightfieldForBounds } from '../src/sim/heightfield';
+import { flatEndmill } from '../src/sim/tool';
+import { simulateCut } from '../src/sim/cuttingSim';
 
 const file = process.argv[2] ?? resolve(import.meta.dirname, '../examples/square-pocket.gcode');
 const src = readFileSync(file, 'utf8');
@@ -26,4 +29,16 @@ else console.log('경고: 없음');
 const outJson = file.replace(/\.gcode$/i, '') + '.toolpath.json';
 writeFileSync(outJson, toUnityToolpathJson(tp), 'utf8');
 console.log(`Unity 경로 export : ${outJson.split('/').pop()}`);
+
+// P3: 절삭 시뮬 — 소재 하이트필드에서 재료 제거 + 충돌/한계 검사
+const hf = heightfieldForBounds(mm.min, mm.max, { cellMm: 0.5, topZ: 0, bottomZ: mm.min.z - 1 });
+const cut = simulateCut(tp.points, hf, flatEndmill(3), { stepMm: 0.25 });
+console.log('--- 절삭 시뮬(P3) ---');
+console.log(`공구             : Ø3 flat`);
+console.log(`제거 부피        : ${fmt(cut.removedVolumeMm3)} mm³`);
+console.log(`표면 Z [${fmt(cut.finalStats.minZ)} .. ${fmt(cut.finalStats.maxZ)}] mm`);
+console.log(`충돌/한계        : ${cut.collisions.length}건${cut.collisions.length ? ' → ' + cut.collisions.map((c) => c.message).join(', ') : ''}`);
+const hfJson = file.replace(/\.gcode$/i, '') + '.stock.json';
+writeFileSync(hfJson, toUnityHeightfieldJson(hf), 'utf8');
+console.log(`Unity 소재 export : ${hfJson.split('/').pop()}`);
 

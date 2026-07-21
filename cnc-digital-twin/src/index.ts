@@ -4,3 +4,4 @@ export * from './gcode/parser';
 export * from './kinematics/forward';
 export * from './toolpath/generator';
 export * from './export/unity';
+export * from './sim';
