@@ -7,4 +7,20 @@ export { colorFixVariants, type ColorFixVariants, type VariantOptions } from './
 export { scanNodes, summarize, flatten, type ScanOptions } from './engine';
 export { autoRuleRegistry } from './rules';
 export { buildReport, reportToJson, reportToText, type A11yReport, type ReportBreakdown } from './report';
+export {
+  noCalibration,
+  calibrationFromMarker,
+  calibrationFromScreenSpec,
+  calibrationFromTwoPoints,
+  hasScale,
+  pxToMm,
+  areaPxToMm2,
+  judgeMbr,
+  KNOWN_MARKERS,
+  type Calibration,
+  type CalibrationSource,
+  type CalibConfidence,
+  type MbrThresholds,
+  type MbrResult,
+} from './measure/calibration';
 export { allRules, autoRules, getRule, rulesData, type RuleDef } from '@app/rules-data';
