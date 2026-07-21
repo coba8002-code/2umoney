@@ -15,6 +15,7 @@
   "dependencies": {
     "@app/core": "workspace:*",
     "@app/ai": "workspace:*",
+    "@app/kiosk-criteria": "workspace:*",
     "@anthropic-ai/sdk": "^0.69.0",
     "@fastify/cors": "^9.0.1",
     "fastify": "^4.28.1"

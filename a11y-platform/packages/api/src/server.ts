@@ -12,6 +12,8 @@ import { handleScan, handleFix, handleReport, type ScanRequest } from './routes'
 import { scanSnapshot } from './scanService';
 import { collectFromUrl } from './collect';
 import { collectSiteFromUrl } from './crawl';
+import { diagnoseKioskScreen } from './kiosk/diagnose';
+import type { KioskScreen } from './kiosk/types';
 import { createAltProvider, type ImageContext, type LlmProvider } from '@app/ai';
 import type { ScanResult } from '@app/core';
 
@@ -83,6 +85,16 @@ export function buildServer(opts: ServerOptions = {}): FastifyInstance {
       { pages: pages.length, total: 0, pass: 0, fail: 0 },
     );
     return reply.send({ ok: true, status: 200, data: { pages, aggregate, visited: site.visited } });
+  });
+
+  // ③ 키오스크 화면 진단: 검출 요소 + 보정 → 기준별 판정 → 실행형 리포트(산출물 03)
+  app.post('/v1/kiosk/diagnose', async (req, reply) => {
+    const body = req.body as KioskScreen | undefined;
+    if (!body || !Array.isArray(body.elements)) {
+      return reply.code(400).send({ ok: false, status: 400, error: 'elements 배열이 필요합니다.' });
+    }
+    const report = diagnoseKioskScreen(body);
+    return reply.send({ ok: true, status: 200, data: report });
   });
 
   app.post('/v1/fix', async (req, reply) => {
