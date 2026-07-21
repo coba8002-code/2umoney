@@ -1,0 +1,4 @@
+node_modules
+dist
+demo/run.mjs
+*.log
