@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { ScanResult } from '@app/core';
 import { analyzeHtml } from './htmlAnalyze';
-import { analyzeUrl, analyzeSite, analyzeImage, analyzeFigma, analyzeUnity } from './analysis/analyzers';
+import type { KioskReport } from '@app/api';
+import { analyzeUrl, analyzeSite, analyzeImage, analyzeFigma, analyzeUnity, analyzeKiosk } from './analysis/analyzers';
 import { FindingsList, downloadJson } from './analysis/FindingsList';
+import { KioskReportView } from './analysis/KioskReportView';
 
-type Mode = 'html' | 'url' | 'image' | 'figma' | 'unity';
+type Mode = 'html' | 'url' | 'image' | 'figma' | 'unity' | 'kiosk';
 
 const SAMPLE_HTML = `<main style="background:#fff;padding:16px">
   <h1 style="color:#222;font-size:28px">상품 안내</h1>
@@ -21,7 +23,21 @@ const MODES: { key: Mode; label: string }[] = [
   { key: 'image', label: '이미지' },
   { key: 'figma', label: 'Figma' },
   { key: 'unity', label: 'Unity' },
+  { key: 'kiosk', label: '키오스크 진단' },
 ];
+
+const SAMPLE_KIOSK = `{
+  "screenSpec": { "diagonalInch": 15.6, "widthPx": 1920, "heightPx": 1080 },
+  "elements": [
+    { "id": "title", "kind": "text", "boxPx": { "x": 40, "y": 40, "widthPx": 320, "heightPx": 44 },
+      "charHeightPx": 30, "text": "주문하기", "fgColor": "#999999", "bgColor": "#ffffff" },
+    { "id": "menu1", "kind": "button", "boxPx": { "x": 40, "y": 120, "widthPx": 90, "heightPx": 90 },
+      "label": "아메리카노", "fgColor": "#ffffff", "bgColor": "#1565c0" },
+    { "id": "pay", "kind": "button", "boxPx": { "x": 40, "y": 240, "widthPx": 40, "heightPx": 40 },
+      "fgColor": "#ffffff", "bgColor": "#1976d2" },
+    { "id": "logo", "kind": "image", "boxPx": { "x": 400, "y": 40, "widthPx": 120, "heightPx": 40 } }
+  ]
+}`;
 
 const SAMPLE_UNITY = `{
   "screenBg": "#ffffff",
@@ -55,11 +71,27 @@ export function Analyzer() {
   const [crawl, setCrawl] = useState(false);
   const [maxPages, setMaxPages] = useState(5);
   const [unityJson, setUnityJson] = useState(SAMPLE_UNITY);
+  const [kioskJson, setKioskJson] = useState(SAMPLE_KIOSK);
+  const [kioskReport, setKioskReport] = useState<KioskReport | null>(null);
 
   function reset() {
     setResult(null);
     setError('');
     setImgPreview('');
+    setKioskReport(null);
+  }
+
+  function runKiosk() {
+    setBusy(true);
+    setError('');
+    setKioskReport(null);
+    try {
+      setKioskReport(analyzeKiosk(kioskJson));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function run(fn: () => Promise<ScanResult> | ScanResult) {
@@ -208,18 +240,47 @@ export function Analyzer() {
               </>
             )}
 
+            {mode === 'kiosk' && (
+              <>
+                <textarea value={kioskJson} onChange={(e) => setKioskJson(e.target.value)} spellCheck={false} aria-label="키오스크 화면 모델 JSON"
+                  style={{ flex: 1, minHeight: 260, fontFamily: 'monospace', fontSize: 12, padding: 10, borderRadius: 8, border: '1px solid #ddd' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="primary" disabled={busy} onClick={runKiosk}>진단</button>
+                  <button className="ghost" onClick={() => setKioskJson(SAMPLE_KIOSK)}>샘플</button>
+                </div>
+                <p style={{ fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+                  무인정보단말기(키오스크) 접근성 진단(별표5 / KS X 9211:2025). 현장 화면에서 검출한
+                  <strong> 요소(버튼·텍스트 좌표·색)</strong>와 <strong>보정</strong>(화면 대각인치+해상도 또는 기준 마커)을 넣으면,
+                  명도대비·버튼 크기(MBR 12mm/144mm²)·문자높이(7.25mm)·레이블을 판정해 <strong>우선순위·수선분류
+                  (S/W·H/W·운영)</strong> 리포트를 만듭니다. 서버 없이 브라우저에서 바로 실행됩니다.
+                  <br />※ <code>screenSpec</code>(또는 <code>calibration</code>) 없이 크기 항목은 "실측필요"로 분류됩니다.
+                  이미지→요소 자동 검출(Vision)은 다음 단계입니다.
+                </p>
+              </>
+            )}
+
             {error && <p style={{ color: '#c62828', fontSize: 12 }}>분석 실패: {error}</p>}
           </div>
         </section>
 
         <section className="panel">
           <div className="panel-head">
-            분석 결과
-            {result && <button className="ghost" onClick={() => downloadJson(result)}>리포트(JSON)</button>}
+            {mode === 'kiosk' ? '키오스크 진단 리포트' : '분석 결과'}
+            {result && mode !== 'kiosk' && <button className="ghost" onClick={() => downloadJson(result)}>리포트(JSON)</button>}
           </div>
-          {!result && !busy && <div className="done" style={{ color: '#888' }}>입력 후 분석을 실행하세요.</div>}
-          {busy && <div className="done" style={{ color: '#888' }}>분석 중…</div>}
-          {result && <FindingsList result={result} />}
+          {mode === 'kiosk' ? (
+            <>
+              {!kioskReport && !busy && <div className="done" style={{ color: '#888' }}>화면 모델 입력 후 진단을 실행하세요.</div>}
+              {busy && <div className="done" style={{ color: '#888' }}>진단 중…</div>}
+              {kioskReport && <KioskReportView report={kioskReport} />}
+            </>
+          ) : (
+            <>
+              {!result && !busy && <div className="done" style={{ color: '#888' }}>입력 후 분석을 실행하세요.</div>}
+              {busy && <div className="done" style={{ color: '#888' }}>분석 중…</div>}
+              {result && <FindingsList result={result} />}
+            </>
+          )}
         </section>
       </div>
     </>
